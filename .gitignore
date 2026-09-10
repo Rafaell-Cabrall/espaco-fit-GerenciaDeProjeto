@@ -23,3 +23,7 @@ apps/api/generated/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# ferramentas locais
+.claude/
+.superpowers/
