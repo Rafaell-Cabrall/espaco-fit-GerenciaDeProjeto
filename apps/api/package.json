@@ -9,6 +9,7 @@
     "start": "node --env-file-if-exists=../../.env src/server.ts",
     "test": "node --test --env-file-if-exists=../../.env \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "prisma:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
