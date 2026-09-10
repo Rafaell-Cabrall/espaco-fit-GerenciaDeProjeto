@@ -45,6 +45,6 @@ npm run dev:mobile   # QR code do Expo
 - CI roda lint, typecheck e testes da API. Squash merge.
 - Contrato novo/alterado (request/response) entra em `packages/shared` antes do front e do back usarem.
 - Módulos da API vivem em `apps/api/src/modules/<nome>/{router,service}.ts`. Os que ainda respondem 501 estão marcados com `TODO(sprint)`.
-- Telas do app ficam em `apps/mobile/app/(<perfil>)/`. O redirecionamento por perfil já está pronto em `app/index.tsx`.
+- No app, `app/` só tem rotas finas; a tela fica em `apps/mobile/src/screens/<Nome>/`. Regras em [apps/mobile/src/README.md](apps/mobile/src/README.md).
 
 Detalhes: [docs/decisoes.md](docs/decisoes.md) (por que cada escolha) e [docs/sprints.md](docs/sprints.md) (o que entra em cada sprint).

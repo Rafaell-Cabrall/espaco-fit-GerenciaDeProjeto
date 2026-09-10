@@ -1,10 +1,3 @@
-import { Text, View } from 'react-native'
+import { HomeAdminScreen } from '@/screens/HomeAdmin'
 
-// Placeholder — telas do perfil ADMIN entram nas sprints (ver docs/sprints.md)
-export default function Home() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Home ADMIN</Text>
-    </View>
-  )
-}
+export default HomeAdminScreen
