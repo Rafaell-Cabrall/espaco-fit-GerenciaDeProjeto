@@ -40,15 +40,23 @@ export async function login({ email, password }: LoginInput) {
 export async function refresh(refreshToken: string) {
   const payload = verifyToken(refreshToken, 'refresh')
   if (!payload) throw new HttpError(401, 'Sessão expirada')
-  const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: publicUser })
-  if (!user) throw new HttpError(401, 'Sessão expirada')
-  return { user, ...tokens(user) }
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { ...publicUser, active: true },
+  })
+  if (!user?.active) throw new HttpError(401, 'Sessão expirada')
+  const { active: _, ...pub } = user
+  return { user: pub, ...tokens(pub) }
 }
 
 export async function me(id: string) {
-  const user = await prisma.user.findUnique({ where: { id }, select: publicUser })
-  if (!user) throw new HttpError(404, 'Usuário não encontrado')
-  return user
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { ...publicUser, active: true },
+  })
+  if (!user?.active) throw new HttpError(401, 'Sessão expirada')
+  const { active: _, ...pub } = user
+  return pub
 }
 
 // Gera código de 6 dígitos válido por 10 min. Envio do e-mail vai para a fila (worker).
@@ -60,8 +68,9 @@ export async function forgotPassword(email: string) {
     where: { id: user.id },
     data: { resetCode: code, resetCodeExpiresAt: new Date(Date.now() + 10 * 60_000) },
   })
-  // ponytail: log no console até o worker de e-mail existir (sprint 3)
-  console.log(`[reset-code] ${email}: ${code}`)
+  // ponytail: log só em dev até o job de e-mail existir (sprint 1); nunca logar em produção
+  if (process.env.NODE_ENV !== 'production')
+    console.log(`[dev] código de recuperação para ${email}: ${code}`)
 }
 
 export async function resetPassword(email: string, code: string, password: string) {
