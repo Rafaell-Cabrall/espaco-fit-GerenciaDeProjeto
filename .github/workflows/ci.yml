@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: espacofit
+          POSTGRES_PASSWORD: espacofit
+          POSTGRES_DB: espacofit
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U espacofit" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://espacofit:espacofit@localhost:5432/espacofit
+      JWT_SECRET: ci-secret-nao-usar-em-producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # scripts leem ../../.env; variáveis do job acima têm precedência sobre o arquivo
+      - run: cp .env.example .env
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm -w apps/api run prisma:deploy
+      - run: npm -w apps/api test

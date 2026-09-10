@@ -1,0 +1,259 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ALUNO
+  INSTRUTOR
+  ADMIN
+}
+
+enum LinkStatus {
+  ACTIVE
+  ENDED
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  OVERDUE
+  BLOCKED
+  CANCELED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(ALUNO)
+  active       Boolean  @default(true)
+  pushToken    String?
+  // recuperação de senha por código de 6 dígitos (tela "Verifique seu e-mail")
+  resetCode          String?
+  resetCodeExpiresAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  asStudent    Link[]         @relation("student")
+  asInstructor Link[]         @relation("instructor")
+  anamnesis    Anamnesis?
+  plans        WorkoutPlan[]  @relation("planStudent")
+  authored     WorkoutPlan[]  @relation("planInstructor")
+  templates    PlanTemplate[]
+  sessions     WorkoutSession[]
+  measurements BodyMeasurement[]
+  subscription Subscription?
+  checkIns     CheckIn[]
+  exercises    Exercise[]
+}
+
+// RU07 — vínculo aluno/instrutor; só um ACTIVE por aluno (garantido no service)
+model Link {
+  id           String     @id @default(cuid())
+  student      User       @relation("student", fields: [studentId], references: [id])
+  studentId    String
+  instructor   User       @relation("instructor", fields: [instructorId], references: [id])
+  instructorId String
+  status       LinkStatus @default(ACTIVE)
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+
+  @@index([studentId, status])
+  @@index([instructorId, status])
+}
+
+// RN05/RN09 — anamnese com consentimento LGPD; answers guarda o questionário (tela Evolução > Anamnese)
+model Anamnesis {
+  id        String   @id @default(cuid())
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String   @unique
+  answers   Json
+  consentAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
+// biblioteca de exercícios; mediaKey aponta para objeto no MinIO/S3
+model Exercise {
+  id          String  @id @default(cuid())
+  name        String
+  muscleGroup String
+  description String?
+  mediaKey    String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+
+  usages DivisionExercise[]
+}
+
+// RU01 — ficha; validade (RN04) calculada a partir de updatedAt
+model WorkoutPlan {
+  id           String     @id @default(cuid())
+  student      User       @relation("planStudent", fields: [studentId], references: [id])
+  studentId    String
+  instructor   User       @relation("planInstructor", fields: [instructorId], references: [id])
+  instructorId String
+  status       PlanStatus @default(DRAFT)
+  publishedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  divisions WorkoutDivision[]
+
+  @@index([studentId, status])
+}
+
+// "Treino B — Costas & Bíceps"
+model WorkoutDivision {
+  id     String      @id @default(cuid())
+  plan   WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId String
+  label  String // A, B, C...
+  title  String // Costas & Bíceps
+  order  Int
+
+  exercises DivisionExercise[]
+  sessions  WorkoutSession[]
+}
+
+model DivisionExercise {
+  id          String          @id @default(cuid())
+  division    WorkoutDivision @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  divisionId  String
+  exercise    Exercise        @relation(fields: [exerciseId], references: [id])
+  exerciseId  String
+  order       Int
+  sets        Int
+  reps        String // "8-10", "12"
+  targetLoad  Decimal?        @db.Decimal(6, 2)
+  restSeconds Int             @default(60)
+
+  setLogs SetLog[]
+}
+
+// modelos de ficha do instrutor; structure = divisões/exercícios em JSON
+model PlanTemplate {
+  id           String @id @default(cuid())
+  instructor   User   @relation(fields: [instructorId], references: [id])
+  instructorId String
+  name         String
+  structure    Json
+}
+
+// RU02/RU03 — sessão de treino; conta como "Realizado" (RN03) se tiver >= 1 SetLog
+model WorkoutSession {
+  id            String          @id @default(cuid())
+  student       User            @relation(fields: [studentId], references: [id])
+  studentId     String
+  division      WorkoutDivision @relation(fields: [divisionId], references: [id])
+  divisionId    String
+  startedAt     DateTime        @default(now())
+  finishedAt    DateTime?
+  effort        Int? // 1..5 (feedback pós-treino)
+  comment       String?
+  exerciseNotes Json? // { [divisionExerciseId]: "Senti o ombro..." }
+
+  setLogs SetLog[]
+
+  @@index([studentId, startedAt])
+}
+
+// RN02 — histórico de carga por série
+model SetLog {
+  id                 String           @id @default(cuid())
+  session            WorkoutSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId          String
+  divisionExercise   DivisionExercise @relation(fields: [divisionExerciseId], references: [id])
+  divisionExerciseId String
+  setNumber          Int
+  loadKg             Decimal?         @db.Decimal(6, 2)
+  reps               Int?
+  doneAt             DateTime         @default(now())
+}
+
+// tela Evolução > Resumo (peso, gordura, músculo; IMC calculado)
+model BodyMeasurement {
+  id         String   @id @default(cuid())
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  weightKg   Decimal  @db.Decimal(5, 2)
+  heightCm   Int?
+  bodyFatPct Decimal? @db.Decimal(4, 1)
+  muscleKg   Decimal? @db.Decimal(5, 2)
+  measuredAt DateTime @default(now())
+
+  @@index([studentId, measuredAt])
+}
+
+// RU04 — feed/avisos
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  body        String
+  publishedAt DateTime  @default(now())
+  expiresAt   DateTime?
+}
+
+// RU05 — financeiro
+model MembershipPlan {
+  id           String  @id @default(cuid())
+  name         String
+  priceCents   Int
+  durationDays Int     @default(30)
+  active       Boolean @default(true)
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  student   User               @relation(fields: [studentId], references: [id])
+  studentId String             @unique
+  plan      MembershipPlan     @relation(fields: [planId], references: [id])
+  planId    String
+  dueDate   DateTime
+  status    SubscriptionStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+
+  payments Payment[]
+}
+
+// provider/externalId ficam nulos até a equipe decidir o gateway (RNF05: nunca guardar cartão)
+model Payment {
+  id             String        @id @default(cuid())
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  amountCents    Int
+  method         String // PIX, CARTAO, DINHEIRO
+  status         PaymentStatus @default(PENDING)
+  provider       String?
+  externalId     String?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+}
+
+// RU06
+model CheckIn {
+  id        String   @id @default(cuid())
+  student   User     @relation(fields: [studentId], references: [id])
+  studentId String
+  at        DateTime @default(now())
+
+  @@index([studentId, at])
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@espacofit/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=../../.env src/server.ts",
+    "dev:worker": "node --watch --env-file-if-exists=../../.env src/worker.ts",
+    "start": "node --env-file-if-exists=../../.env src/server.ts",
+    "test": "node --test --env-file-if-exists=../../.env \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "prisma:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "prisma:seed": "node --env-file-if-exists=../../.env prisma/seed.ts",
+    "prisma:studio": "dotenv -e ../../.env -- prisma studio"
+  },
+  "dependencies": {
+    "@espacofit/shared": "*",
+    "@prisma/client": "^6.19.3",
+    "bullmq": "^6.3.4",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.6.1",
+    "ioredis": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.20.2",
+    "dotenv-cli": "^10.0.0",
+    "prisma": "^6.19.3"
+  }
+}
