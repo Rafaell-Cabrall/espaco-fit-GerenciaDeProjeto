@@ -6,7 +6,7 @@ export const anamnesisRouter = Router()
 
 anamnesisRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
+// TODO(sprint 1): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
 anamnesisRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo anamnesis ainda não implementado' }),
 )

@@ -7,7 +7,7 @@ export const connection = { url: env.REDIS_URL }
 export type Jobs = {
   ping: { at: string }
   // 'push': { userId: string; title: string; body: string }   (sprint 2)
-  // 'daily-billing': Record<string, never>                     (sprint 3, RN06/RN07)
+  // 'daily-billing': Record<string, never>                     (sprint 4, RN06/RN07)
 }
 
 export const queue = new Queue<Jobs[keyof Jobs]>('jobs', { connection })

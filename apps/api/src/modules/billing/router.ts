@@ -6,7 +6,7 @@ export const billingRouter = Router()
 
 billingRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,ADMIN
+// TODO(sprint 4): implementar. Roles esperados: ALUNO,ADMIN
 billingRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo billing ainda não implementado' }),
 )

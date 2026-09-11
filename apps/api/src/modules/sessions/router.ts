@@ -6,7 +6,7 @@ export const sessionsRouter = Router()
 
 sessionsRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
+// TODO(sprint 2): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
 sessionsRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo sessions ainda não implementado' }),
 )

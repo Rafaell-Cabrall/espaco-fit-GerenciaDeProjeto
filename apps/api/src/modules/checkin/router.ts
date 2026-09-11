@@ -6,7 +6,7 @@ export const checkinRouter = Router()
 
 checkinRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,ADMIN
+// TODO(sprint 5): implementar. Roles esperados: ALUNO,ADMIN
 checkinRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo checkin ainda não implementado' }),
 )

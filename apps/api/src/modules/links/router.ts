@@ -6,7 +6,7 @@ export const linksRouter = Router()
 
 linksRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ADMIN
+// TODO(sprint 1): implementar. Roles esperados: ADMIN
 linksRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo links ainda não implementado' }),
 )

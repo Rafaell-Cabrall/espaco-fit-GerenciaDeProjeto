@@ -6,7 +6,7 @@ export const feedRouter = Router()
 
 feedRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
+// TODO(sprint 3): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
 feedRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo feed ainda não implementado' }),
 )

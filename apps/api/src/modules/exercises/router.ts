@@ -6,7 +6,7 @@ export const exercisesRouter = Router()
 
 exercisesRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: INSTRUTOR,ADMIN
+// TODO(sprint 1): implementar. Roles esperados: INSTRUTOR,ADMIN
 exercisesRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo exercises ainda não implementado' }),
 )

@@ -6,7 +6,7 @@ export const plansRouter = Router()
 
 plansRouter.use(auth)
 
-// TODO(sprint): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
+// TODO(sprint 1): implementar. Roles esperados: ALUNO,INSTRUTOR,ADMIN
 plansRouter.get('/', (_req, res) =>
   res.status(501).json({ error: 'Módulo plans ainda não implementado' }),
 )
