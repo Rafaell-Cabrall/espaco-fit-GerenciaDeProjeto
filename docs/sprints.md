@@ -28,9 +28,9 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 - [x] Contratos da sprint em `packages/shared` até 14/09 (desbloqueia o Front 2); rotas em [`docs/api/`](api/README.md)
 - [ ] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
 - [ ] `anamnesis`: GET/PUT com `consentAt` obrigatório (RN09)
-- [ ] `plans`: ficha com divisões e exercícios, modelos, publicar só com anamnese (RN05); leitura pelo aluno (RN01)
+- [ ] `plans`: ficha com divisões e exercícios, modelos, criar só com anamnese (RN05); leitura pelo aluno (RN01)
 - [ ] `exercises`: biblioteca padrão no seed, com GIF no MinIO por URL assinada (RNF06)
-- [ ] `sessions`: iniciar sessão, registrar série com carga (só aluno, RN02), finalizar
+- [ ] `sessions`: iniciar sessão, registrar série com carga (só aluno, RN02), finalizar, descartar sem série (RN03)
 - [ ] Treino do dia: rotação A→B→C com escolha manual (RN08)
 - [ ] `users` e `links`: criar usuários e vincular aluno ↔ instrutor (usado só via API/seed nesta sprint)
 - [ ] Coleção do Insomnia/Bruno em `docs/api/` para o instrutor "montar ficha" na demo

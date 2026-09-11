@@ -75,7 +75,8 @@ export const createUserSchema = z.object({
 })
 export type CreateUserInput = z.input<typeof createUserSchema>
 
-// Criar vínculo encerra o vínculo ativo anterior do aluno: só um ACTIVE por aluno
+// Criar vínculo encerra o vínculo ativo anterior do aluno: só um ACTIVE por aluno (RU07).
+// Instrutor inativo responde 404 "Instrutor não encontrado ou com cadastro inativo."
 export const createLinkSchema = z.object({
   studentId: z.string().min(1),
   instructorId: z.string().min(1),
@@ -110,7 +111,8 @@ const anamnesisAnswers = z.object({
   conditions: z.string().trim().max(500).default(''), // "Doenças preexistentes"; vazio = "Nenhuma"
 })
 
-// PUT /anamnesis/:studentId, só o próprio aluno. consent = aceite do uso de dado de saúde (LGPD)
+// PUT /anamnesis/:studentId, só o próprio aluno. consent = opt-in do dado de saúde (RN09).
+// Leitura restrita ao aluno e ao instrutor com vínculo ativo; admin não lê (RN09).
 export const anamnesisInputSchema = anamnesisAnswers.extend({
   consent: z.literal(true, { error: 'Autorize o uso dos seus dados de saúde para continuar' }),
 })
@@ -156,7 +158,8 @@ export const divisionInputSchema = z.object({
 export type DivisionInput = z.input<typeof divisionInputSchema>
 const divisions = z.array(divisionInputSchema).min(1).max(7)
 
-// POST /plans cria rascunho; PUT /plans/:id substitui as divisões
+// POST /plans cria rascunho; 409 "Criação bloqueada. O aluno ainda não preencheu a Anamnese inicial."
+// (RN05). PUT /plans/:id substitui as divisões. POST /plans/:id/publish ativa e expira a anterior.
 export const createPlanSchema = z.object({ studentId: z.string().min(1), divisions })
 export type CreatePlanInput = z.input<typeof createPlanSchema>
 export const updatePlanSchema = z.object({ divisions })
@@ -229,7 +232,8 @@ export const setLogSchema = z.object({
 })
 export type SetLog = z.infer<typeof setLogSchema>
 
-// POST /sessions/:id/finish responde 422 sem nenhuma série ("Marque ao menos 1 série...")
+// POST /sessions/:id/finish responde 422 sem nenhuma série (RN03). Nesse caso o app mostra o pop-up
+// "Nenhum exercício concluído..." e, em "Sair do treino", chama DELETE /sessions/:id para descartar.
 export const finishSessionSchema = z.object({
   // "Nota do exercício", chave = divisionExerciseId
   notes: z.record(z.string(), z.string().trim().max(500)).default({}),
