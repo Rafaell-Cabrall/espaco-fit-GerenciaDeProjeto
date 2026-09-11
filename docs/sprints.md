@@ -25,6 +25,8 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 
 **Back**
 - [x] Setup: monorepo, Docker, Prisma, auth, middlewares, CI
+- [ ] Contratos da sprint em `packages/shared` até 14/09 (desbloqueia o Front 2)
+- [ ] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
 - [ ] `anamnesis`: GET/PUT com `consentAt` obrigatório (RN09)
 - [ ] `plans`: ficha com divisões e exercícios, modelos, publicar só com anamnese (RN05); leitura pelo aluno (RN01)
 - [ ] `exercises`: biblioteca padrão no seed, com GIF no MinIO por URL assinada (RNF06)
@@ -42,8 +44,12 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 - [ ] Se sobrar tempo: tela de perfil do aluno
 
 **Design**
+- [ ] Anamnese do primeiro acesso (falta no Figma do aluno; bloqueia o front até 15/09)
+- [ ] Tela de treino concluído e feedback de esforço (falta no Figma do aluno)
 - [ ] Fechar telas do Instrutor: lista de alunos, perfil do aluno, montar ficha, biblioteca (insumo da Sprint 2)
 - [ ] Registro de validação do protótipo do aluno com 2 alunos reais
+
+Divisão por pessoa, datas e dependências: quadro da Sprint 1 no ClickUp. Front 1 cuida do design system e da autenticação; Front 2 cuida do fluxo de treino.
 
 ## Sprint 2 — Fechar o aluno e abrir o instrutor (RU01 front, RU03, RN03)
 
