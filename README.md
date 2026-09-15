@@ -35,7 +35,7 @@ npm run dev:mobile   # QR code do Expo
 |---|---|
 | `npm run lint` / `npm run lint:fix` | Biome (lint + formatação) em todo o repo |
 | `npm run typecheck` | `tsc` nos três pacotes |
-| `npm -w apps/api test` | testes da API (`node --test`, precisa do Postgres do compose) |
+| `npm -w apps/api test` | testes da API (`node --test`, precisa do Postgres e do Redis do compose) |
 | `npm -w apps/api run prisma:studio` | UI do banco |
 | `npm -w apps/api run prisma:migrate -- --name <nome>` | nova migração após editar `schema.prisma` |
 

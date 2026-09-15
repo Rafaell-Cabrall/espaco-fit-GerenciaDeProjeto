@@ -12,11 +12,19 @@ declare global {
   }
 }
 
-export function auth(req: Request, _res: Response, next: NextFunction) {
+// Consulta o usuário a cada requisição (uma leitura por chave primária): desativação, logout,
+// troca de senha e mudança de perfil valem na hora, sem esperar o token expirar.
+export async function auth(req: Request, _res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace(/^Bearer /, '')
   const payload = token && verifyToken(token, 'access')
   if (!payload) throw new HttpError(401, 'Não autenticado')
-  req.user = { id: payload.sub, role: payload.role }
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { role: true, active: true, tokenVersion: true },
+  })
+  if (!user?.active || user.tokenVersion !== payload.ver)
+    throw new HttpError(401, 'Sessão expirada')
+  req.user = { id: payload.sub, role: user.role }
   next()
 }
 

@@ -45,9 +45,12 @@ model User {
   role         Role     @default(ALUNO)
   active       Boolean  @default(true)
   pushToken    String?
-  // recuperação de senha por código de 6 dígitos (tela "Verifique seu e-mail")
+  // vai no JWT; incrementar derruba todos os tokens do usuário (logout, troca de senha)
+  tokenVersion Int      @default(0)
+  // recuperação de senha por código de 6 dígitos (tela "Verifique seu e-mail"); guarda o SHA-256
   resetCode          String?
   resetCodeExpiresAt DateTime?
+  resetCodeAttempts  Int       @default(0) // conferências do código atual; trava força bruta
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

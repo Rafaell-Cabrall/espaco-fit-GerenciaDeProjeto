@@ -17,8 +17,12 @@ jobs:
           POSTGRES_DB: espacofit
         ports: ['5432:5432']
         options: --health-cmd "pg_isready -U espacofit" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
     env:
       DATABASE_URL: postgresql://espacofit:espacofit@localhost:5432/espacofit
+      REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-secret-nao-usar-em-producao
     steps:
       - uses: actions/checkout@v4

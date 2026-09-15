@@ -1,16 +1,26 @@
 // Fila única "jobs"; cada job tem um `name` tratado no worker. Adicione nomes aqui conforme surgirem.
 import { Queue } from 'bullmq'
 import { env } from './env.ts'
+import type { Mail } from './mail.ts'
 
 export const connection = { url: env.REDIS_URL }
 
 export type Jobs = {
   ping: { at: string }
+  email: Mail
   // 'push': { userId: string; title: string; body: string }   (sprint 2)
   // 'daily-billing': Record<string, never>                     (sprint 4, RN06/RN07)
 }
 
-export const queue = new Queue<Jobs[keyof Jobs]>('jobs', { connection })
+export const queue = new Queue<Jobs[keyof Jobs]>('jobs', {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: true, // e-mail leva código de recuperação: não fica no Redis depois de enviado
+    removeOnFail: 100,
+  },
+})
 
 export function enqueue<K extends keyof Jobs>(name: K, data: Jobs[K]) {
   return queue.add(name, data)

@@ -26,7 +26,8 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 **Back**
 - [x] Setup: monorepo, Docker, Prisma, auth, middlewares, CI
 - [x] Contratos da sprint em `packages/shared` até 14/09 (desbloqueia o Front 2); rotas em [`docs/api/`](api/README.md)
-- [ ] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
+- [x] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
+- [x] E-mail real do código de recuperação pelo worker (antecipado da Sprint 2)
 - [ ] `anamnesis`: GET/PUT com `consentAt` obrigatório (RN09)
 - [ ] `plans`: ficha com divisões e exercícios, modelos, criar só com anamnese (RN05); leitura pelo aluno (RN01)
 - [ ] `exercises`: biblioteca padrão no seed, com GIF no MinIO por URL assinada (RNF06)
@@ -60,7 +61,6 @@ Demo: aluno finaliza treino, dá feedback, vê calendário e streak; instrutor e
 - [ ] Push ao instrutor na conclusão (job `push` via BullMQ + Expo Push); registro do token do dispositivo
 - [ ] `exercises`: cadastro pelo instrutor com upload de mídia
 - [ ] `measurements`: medidas corporais (API pronta para a Evolução da Sprint 3)
-- [ ] Se sobrar tempo: e-mail real do código de recuperação de senha
 
 **Front**
 - [ ] Aluno: tela de feedback pós-treino, pop-up de "nenhuma série concluída", calendário de frequência, streak na Home

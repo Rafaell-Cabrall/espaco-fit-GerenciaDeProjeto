@@ -36,4 +36,8 @@ A equipe ainda não decidiu se haverá pagamento no app. `Subscription`/`Payment
 Postgres em `5433` e Redis em `6380` para não colidir com outros projetos na mesma máquina.
 
 ## 12. Recuperação de senha por código de 6 dígitos
-Segue as telas do Figma ("Verifique seu e-mail"). Código fica em `User.resetCode` com validade de 10 min. Até o job de e-mail existir, o código é impresso no console da API.
+Segue as telas do Figma ("Verifique seu e-mail"). O SHA-256 do código fica em `User.resetCode`, com validade de 10 min. O código vai por e-mail pelo job `email` do worker, com nodemailer via SMTP: Gmail com senha de app serve para a demo, e trocar de provedor é só mudar as variáveis `SMTP_*`. Sem `SMTP_HOST`, o worker imprime o e-mail no console; em produção isso é erro, para não vazar o código em log. Cada código aceita 5 conferências somadas entre `verify-reset-code` e `reset-password`; a contagem sobe antes da comparação, então requisições em paralelo não furam o limite. "Reenviar código" gera outro e zera a contagem.
+
+## 13. Sessões revogáveis e limites de tentativa
+JWT puro não tem logout. `User.tokenVersion` vai no token e o middleware `auth` confere a cada requisição, com uma leitura por chave primária. Sair, redefinir a senha ou desativar a conta derruba todos os tokens na hora, em todos os aparelhos. Sessão por aparelho exigiria uma tabela de refresh tokens; não compensa para o uso de uma academia.
+Limites ficam no Redis que a fila já usa: o login trava por 15 min após 10 erros no mesmo e-mail, e a redefinição de senha destrava. O código de recuperação exige 60 s entre envios (o timer do Figma) e no máximo 5 por hora, valendo também para e-mail sem conta, para a resposta não revelar quem é cliente. Conta desativada recebe 403 só depois da senha certa.

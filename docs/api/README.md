@@ -1,12 +1,15 @@
 # API — contratos da Sprint 1
 
+Guia de autenticação para o front, com fluxos por tela e exemplos: [autenticacao.pdf](autenticacao.pdf) (fonte em [autenticacao.html](autenticacao.html)).
+
 Schemas em [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts). O app importa de `@espacofit/shared` e não redeclara tipos.
 Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Documento de Requisitos v3. As telas do instrutor ainda não existem: as rotas de escrita da ficha seguem o RF06/RF07 e são usadas via Insomnia/Bruno na demo.
 
 ## Convenções
 
 - Toda rota, exceto `/auth/*` e `/health`, exige `Authorization: Bearer <accessToken>`.
-- Erro: `{ "error": "mensagem" }`. Validação acrescenta `issues` do zod. Status: `400` dados inválidos, `401` sem sessão, `403` sem perfil ou sem vínculo, `404` não encontrado, `409` conflito, `422` regra de negócio.
+- Erro: `{ "error": "mensagem" }`. Validação acrescenta `issues` do zod. Status: `400` dados inválidos, `401` sem sessão, `403` sem perfil ou sem vínculo, `404` não encontrado, `409` conflito, `422` regra de negócio, `429` muitas tentativas. Em todos, o app pode exibir `error` como veio.
+- Sessão: o access token dura 15 min e o refresh 30 dias. Sair da conta, redefinir a senha ou ter a conta desativada encerra a sessão em todos os aparelhos; o próximo `401` sem refresh válido leva ao login.
 - Datas em ISO 8601 UTC. Cargas em kg como `number`. `null` significa ausência de valor, nunca erro.
 - "Vínculo" = o instrutor só acessa aluno com vínculo ativo. Aluno só acessa a si mesmo. Admin acessa tudo, exceto a anamnese (RN09).
 
@@ -14,8 +17,13 @@ Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Document
 
 | Método e rota | Quem | Body | Resposta | Tela |
 |---|---|---|---|---|
+| `POST /auth/register` | público | `registerSchema` | `201` `authResponseSchema`; `409` e-mail em uso | Criar conta |
+| `POST /auth/login` | público | `loginSchema` | `authResponseSchema`; `401` senha errada, `403` conta desativada, `429` após 10 erros | Seja Bem-vindo |
+| `POST /auth/refresh` | público | `refreshSchema` | `authResponseSchema`; `401` sessão encerrada | — (o cliente HTTP já trata) |
+| `GET /auth/me` | logado | — | `userSchema` | abertura do app |
+| `POST /auth/logout` | logado | — | `204` | Sair da conta (chamar antes de apagar os tokens locais) |
+| `POST /auth/forgot-password` | público | `forgotPasswordSchema` | `204`; `429` antes de 60 s ou após 5 por hora | Esqueci minha senha, Reenviar código |
 | `POST /auth/verify-reset-code` | público | `verifyResetCodeSchema` | `204` ou `400` | Verifique seu e-mail |
-| `POST /auth/forgot-password` | público | `forgotPasswordSchema` | `204` | Esqueci minha senha, Reenviar código |
 | `POST /auth/reset-password` | público | `resetPasswordSchema` | `204` ou `400` | Criar nova senha |
 | `GET /anamnesis/:studentId` | o aluno, instrutor com vínculo | — | `anamnesisSchema` ou `null` | Primeiro acesso, Evolução > Anamnese |
 | `PUT /anamnesis/:studentId` | o próprio aluno | `anamnesisInputSchema` | `anamnesisSchema` | Anamnese, Atualizar Anamnese |

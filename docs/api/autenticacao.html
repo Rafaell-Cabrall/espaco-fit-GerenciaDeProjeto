@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Autenticação — Guia do front · Espaço Fit</title>
+<!-- Fonte do PDF docs/api/autenticacao.pdf. Regerar pelo PowerShell (pelo Git Bash o Edge sai sem gravar):
+     Start-Process msedge -Wait -ArgumentList '--headless=new','--no-pdf-header-footer',
+       "--print-to-pdf=$PWD\docs\api\autenticacao.pdf","file:///$PWD/docs/api/autenticacao.html" -->
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  :root {
+    --ink: #1a1a1a; --muted: #5c5c5c; --line: #e3e3e3; --soft: #f6f6f6;
+    --brand: #c8102e; --ok: #1e7d3a; --warn: #a15c00; --err: #b3261e;
+    --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+  code, pre, .path, .s, .m { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10.5pt/1.5 "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); }
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  h2 { font-size: 15pt; margin: 22px 0 10px; padding-top: 6px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  code { font-family: var(--mono); font-size: 9pt; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+  pre { font-family: var(--mono); font-size: 8.6pt; line-height: 1.45; background: #1f1f1f; color: #f1f1f1;
+        padding: 10px 12px; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; break-inside: avoid; }
+  pre .c { color: #9aa0a6; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.6pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { background: var(--soft); font-weight: 600; }
+  .cover { border-left: 6px solid var(--brand); padding: 4px 0 4px 16px; margin-bottom: 18px; }
+  .cover .kicker { color: var(--brand); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 9pt; }
+  .cover h1 { font-size: 24pt; margin: 4px 0 6px; }
+  .cover .meta { color: var(--muted); font-size: 9.5pt; }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; break-inside: avoid; }
+  .box.key { border-color: var(--brand); background: #fff7f8; }
+  .box h3 { margin-top: 0; }
+  .route { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; break-inside: avoid; overflow: hidden; }
+  .route .head { display: flex; gap: 10px; align-items: baseline; background: var(--soft); padding: 7px 12px; border-bottom: 1px solid var(--line); }
+  .route .head .path { font-family: var(--mono); font-weight: 600; font-size: 10pt; }
+  .route .head .who { margin-left: auto; color: var(--muted); font-size: 9pt; }
+  .route .body { padding: 6px 12px 8px; }
+  .route table { margin: 4px 0; }
+  .m { font-family: var(--mono); font-weight: 700; font-size: 8.5pt; padding: 2px 6px; border-radius: 4px; color: #fff; }
+  .m.post { background: var(--brand); } .m.get { background: #2f5d9e; }
+  .s { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+  .s.ok { color: var(--ok); } .s.warn { color: var(--warn); } .s.err { color: var(--err); }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 28px; margin: 6px 0; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 50%;
+                      background: var(--ink); color: #fff; font-size: 8.5pt; font-weight: 700; text-align: center; line-height: 19px; }
+  .check { list-style: none; padding: 0; }
+  .check li { padding-left: 24px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 0; top: 3px; width: 12px; height: 12px; border: 1.5px solid var(--ink); border-radius: 3px; }
+  .muted { color: var(--muted); }
+  .pb { break-before: page; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">Espaço Fit · API</div>
+  <h1>Autenticação: guia para o front</h1>
+  <div class="meta">Login, cadastro, recuperação de senha e sessão · Versão 1 · 11/09/2026<br>
+  Vale a partir do merge do PR de autenticação na <code>main</code>.</div>
+</div>
+
+<div class="box key">
+  <h3>Resumo</h3>
+  <ul>
+    <li>Todas as telas do Figma de login, cadastro e "Esqueci a senha" já têm rota pronta na API.</li>
+    <li>Tipos e validações vêm de <code>@espacofit/shared</code>. Não redeclarar no app.</li>
+    <li>O cliente <code>api()</code> em <code>src/api/client.ts</code> já renova o token sozinho e transforma qualquer erro em <code>ApiError</code> com a mensagem pronta para exibir.</li>
+    <li>Duas mudanças no app: <b>"Sair da conta" passa a chamar a API</b> e <b>"Reenviar código" tem um timer de 60 s</b> imposto pelo servidor.</li>
+  </ul>
+</div>
+
+<h2>1. Como a sessão funciona</h2>
+<table>
+  <tr><th>Token</th><th>Validade</th><th>Para que serve</th></tr>
+  <tr><td>Access token</td><td>15 minutos</td><td>Vai no cabeçalho <code>Authorization: Bearer …</code> de toda rota protegida.</td></tr>
+  <tr><td>Refresh token</td><td>30 dias</td><td>Só serve para pedir um par novo em <code>POST /auth/refresh</code>.</td></tr>
+</table>
+<ol class="steps">
+  <li>Ao abrir o app, o <code>AuthProvider</code> chama <code>GET /auth/me</code>.</li>
+  <li>Se a API responder <span class="s err">401</span>, o cliente chama <code>/auth/refresh</code> uma vez e repete a requisição.</li>
+  <li>Se o refresh também falhar, o cliente apaga os tokens e o usuário fica <code>null</code>: o app volta para o login.</li>
+</ol>
+<p><b>O que encerra a sessão na hora, em todos os aparelhos:</b> sair da conta, redefinir a senha e ter a conta desativada pela recepção. Nesses casos, a próxima requisição recebe 401 e o fluxo acima leva ao login.</p>
+<p><b>"Lembrar Acesso"</b> é decisão só do app: marcado, guarda os tokens no SecureStore como hoje; desmarcado, mantém em memória e pede login ao reabrir. A API não muda.</p>
+
+<h2>2. Fluxos por tela</h2>
+
+<h3>Criar conta → Conta Criada com Sucesso</h3>
+<ol class="steps">
+  <li>Valide o formulário com <code>registerSchema</code>. "Confirmar senha" é só do app; a API ignora campos extras.</li>
+  <li>Envie <code>POST /auth/register</code>. A resposta traz tokens, mas o Figma leva para "Ir para o Login": pode ignorá-los.</li>
+  <li>Se vier <span class="s warn">409</span>, mostre a mensagem "E-mail já cadastrado".</li>
+</ol>
+<pre><span class="c">// screens/Cadastro/index.tsx</span>
+import { authResponseSchema, registerSchema } from '@espacofit/shared'
+import { z } from 'zod'
+import { api, ApiError } from '../../api/client'
+
+export const cadastroForm = registerSchema
+  .extend({ confirmPassword: z.string() })
+  .refine((v) => v.password === v.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'As senhas não conferem',
+  })
+
+async function criarConta(values: z.infer&lt;typeof cadastroForm&gt;) {
+  try {
+    await api('/auth/register', authResponseSchema, { method: 'POST', body: values, auth: false })
+    <span class="c">// navegar para "Conta Criada com Sucesso!"</span>
+  } catch (e) {
+    if (e instanceof ApiError) setErro(e.message) <span class="c">// "E-mail já cadastrado"</span>
+  }
+}</pre>
+
+<h3>Seja Bem-vindo (login)</h3>
+<ol class="steps">
+  <li>Use o <code>login()</code> do <code>useAuth()</code>. Ele já salva os tokens e preenche o usuário.</li>
+  <li>Em erro, mostre <code>e.message</code> como veio. As três mensagens possíveis estão na seção 3.</li>
+  <li>Depois do login, redirecione pelo <code>user.role</code>: <code>ALUNO</code>, <code>INSTRUTOR</code> ou <code>ADMIN</code>.</li>
+</ol>
+
+<h3>Esqueci a senha → Verifique seu e-mail → Criar nova senha → Senha atualizada</h3>
+<ol class="steps">
+  <li><b>Esqueci minha senha:</b> <code>POST /auth/forgot-password</code>. A resposta é <span class="s ok">204</span> exista ou não a conta, então avance sempre para a próxima tela.</li>
+  <li><b>Verifique seu e-mail:</b> mostre o e-mail digitado e inicie o timer "Reenviar código em 01:00". O botão "Reenviar código" chama a mesma rota quando o timer zerar.</li>
+  <li><b>Verificar Código:</b> <code>POST /auth/verify-reset-code</code> com e-mail e os 6 dígitos. <span class="s ok">204</span> abre "Criar nova senha"; <span class="s err">400</span> mostra "Código inválido ou expirado".</li>
+  <li><b>Redefinir Senha:</b> <code>POST /auth/reset-password</code> com e-mail, o mesmo código e a nova senha. Guarde e-mail e código no estado da navegação entre as telas.</li>
+  <li><b>Senha atualizada:</b> botão "Ir para o Login". Qualquer sessão antiga dessa conta foi encerrada.</li>
+</ol>
+<div class="box">
+  <h3>Regras do código que a tela precisa refletir</h3>
+  <ul>
+    <li>Vale por <b>10 minutos</b> e aceita <b>5 conferências</b> no total, somando "Verificar Código" e "Redefinir Senha". O fluxo normal gasta 2.</li>
+    <li>Estourou as tentativas ou o prazo: a API responde 400 e só um código novo resolve. Ofereça "Reenviar código".</li>
+    <li>Reenviar exige <b>60 s</b> entre pedidos e no máximo <b>5 por hora</b>. Antes disso a API responde <span class="s warn">429</span> com a espera na mensagem.</li>
+    <li>O e-mail chega com o assunto "Seu código de recuperação — Espaço Fit". Vale dizer ao aluno para olhar o spam.</li>
+  </ul>
+</div>
+<pre><span class="c">// respostas 204 não têm corpo: passe z.undefined() como schema</span>
+await api('/auth/forgot-password', z.undefined(), { method: 'POST', body: { email }, auth: false })
+await api('/auth/verify-reset-code', z.undefined(), { method: 'POST', body: { email, code }, auth: false })
+await api('/auth/reset-password', z.undefined(), {
+  method: 'POST',
+  body: { email, code, password },
+  auth: false,
+})</pre>
+
+<h3>Sair da conta</h3>
+<p>O modal "Tem certeza que deseja sair da conta?" chama o <code>logout()</code> do <code>useAuth()</code>. Ele precisa avisar a API antes de apagar os tokens:</p>
+<pre><span class="c">// src/auth.tsx</span>
+const logout = async () => {
+  <span class="c">// sem internet, sai mesmo assim; a sessão expira sozinha</span>
+  await api('/auth/logout', z.undefined(), { method: 'POST' }).catch(() => {})
+  await tokens.clear()
+  setUser(null)
+}</pre>
+
+<h2>3. Referência das rotas</h2>
+<p class="muted">Base: <code>EXPO_PUBLIC_API_URL</code>. Corpo sempre em JSON. Todas as mensagens de erro vêm em <code>{"error": "…"}</code>.</p>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/register</span><span class="who">público · <code>registerSchema</code></span></div>
+  <div class="body">
+<pre>{ "name": "João Silva", "email": "joao@email.com", "password": "Senha123", "acceptedTerms": true }</pre>
+    <table>
+      <tr><td class="s ok">201</td><td><code>authResponseSchema</code>: <code>{ user, accessToken, refreshToken }</code></td></tr>
+      <tr><td class="s warn">409</td><td>E-mail já cadastrado</td></tr>
+      <tr><td class="s err">400</td><td>Dados inválidos. Não acontece se o formulário validar com o schema.</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/login</span><span class="who">público · <code>loginSchema</code></span></div>
+  <div class="body">
+<pre>{ "email": "joao@email.com", "password": "Senha123" }</pre>
+    <table>
+      <tr><td class="s ok">200</td><td><code>authResponseSchema</code>. <code>user.role</code> decide a área do app.</td></tr>
+      <tr><td class="s err">401</td><td>E-mail ou senha inválidos</td></tr>
+      <tr><td class="s err">403</td><td>Conta desativada. Procure a recepção da academia. <span class="muted">(só aparece com a senha certa)</span></td></tr>
+      <tr><td class="s warn">429</td><td>Muitas tentativas. Aguarde 15 minutos ou use "Esqueci a senha". <span class="muted">(após 10 erros no mesmo e-mail)</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/refresh</span><span class="who">público · o cliente HTTP já chama</span></div>
+  <div class="body">
+<pre>{ "refreshToken": "eyJ…" }</pre>
+    <table>
+      <tr><td class="s ok">200</td><td><code>authResponseSchema</code> com um par novo de tokens</td></tr>
+      <tr><td class="s err">401</td><td>Sessão expirada: logout, senha redefinida, conta desativada ou 30 dias passados</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m get">GET</span><span class="path">/auth/me</span><span class="who">logado</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">200</td><td><code>userSchema</code>: <code>{ id, name, email, role }</code></td></tr>
+      <tr><td class="s err">401</td><td>Não autenticado ou Sessão expirada</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/logout</span><span class="who">logado · sem corpo</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">204</td><td>Sessão encerrada em todos os aparelhos. Apague os tokens locais em seguida.</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/forgot-password</span><span class="who">público · <code>forgotPasswordSchema</code></span></div>
+  <div class="body">
+<pre>{ "email": "joao@email.com" }</pre>
+    <table>
+      <tr><td class="s ok">204</td><td>Código enviado, ou e-mail sem conta. A resposta é a mesma de propósito.</td></tr>
+      <tr><td class="s warn">429</td><td>Aguarde 42 s para pedir outro código. <span class="muted">(o número é a espera real)</span></td></tr>
+      <tr><td class="s warn">429</td><td>Limite de códigos atingido. Tente de novo em 1 hora.</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/verify-reset-code</span><span class="who">público · <code>verifyResetCodeSchema</code></span></div>
+  <div class="body">
+<pre>{ "email": "joao@email.com", "code": "482913" }</pre>
+    <table>
+      <tr><td class="s ok">204</td><td>Código certo: abrir "Criar nova senha"</td></tr>
+      <tr><td class="s err">400</td><td>Código inválido ou expirado</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/auth/reset-password</span><span class="who">público · <code>resetPasswordSchema</code></span></div>
+  <div class="body">
+<pre>{ "email": "joao@email.com", "code": "482913", "password": "NovaSenha1" }</pre>
+    <table>
+      <tr><td class="s ok">204</td><td>Senha trocada, sessões antigas encerradas, bloqueio de login liberado</td></tr>
+      <tr><td class="s err">400</td><td>Código inválido ou expirado</td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>4. Validação no app</h2>
+<p>Os schemas já trazem as mensagens do Figma. Validando antes de enviar, o 400 "Dados inválidos" da API nunca aparece para o aluno.</p>
+<table>
+  <tr><th>Campo</th><th>Schema</th><th>Mensagens</th></tr>
+  <tr><td>Senha e nova senha</td><td><code>password</code></td><td>Mínimo 8 caracteres · Uma letra maiúscula · Um número</td></tr>
+  <tr><td>Termos e LGPD</td><td><code>registerSchema.acceptedTerms</code></td><td>Aceite os termos para continuar</td></tr>
+  <tr><td>Código</td><td><code>verifyResetCodeSchema.code</code></td><td>Código de 6 dígitos</td></tr>
+  <tr><td>E-mail</td><td>todos</td><td>Vai em minúsculas para a API automaticamente</td></tr>
+</table>
+<p>Os três requisitos da tela "Criar nova senha" podem ficar verdes um a um testando cada regra de <code>password</code> separadamente com <code>safeParse</code>.</p>
+
+<h2>5. Checklist do app</h2>
+<ul class="check">
+  <li><code>logout()</code> em <code>src/auth.tsx</code> chama <code>POST /auth/logout</code> antes de apagar os tokens.</li>
+  <li>Timer de 60 s em "Verifique seu e-mail", reiniciado a cada envio com sucesso.</li>
+  <li>Rotas com resposta <span class="s ok">204</span> chamadas com <code>z.undefined()</code>.</li>
+  <li>Erros exibidos com <code>e.message</code> de <code>ApiError</code>, sem traduzir status no app.</li>
+  <li>E-mail e código guardados na navegação entre "Verifique seu e-mail" e "Criar nova senha".</li>
+  <li>Cadastro leva para "Conta Criada com Sucesso!" e depois para o login.</li>
+  <li>Após o login, redirecionar pela <code>role</code> para os grupos <code>(aluno)</code>, <code>(instrutor)</code> ou <code>(admin)</code>.</li>
+</ul>
+
+<h2>6. Rodando local</h2>
+<ul>
+  <li><b>Três terminais:</b> <code>npm run dev:api</code>, <code>npm run dev:worker</code> e <code>npm run dev:mobile</code>. O worker é quem envia o e-mail.</li>
+  <li><b>Sem SMTP no <code>.env</code>,</b> o e-mail não sai: ele aparece no terminal do worker com o código.</li>
+  <li><b>No celular,</b> <code>EXPO_PUBLIC_API_URL</code> precisa ser o IP da máquina na rede, não <code>localhost</code>.</li>
+  <li><b>Usuários de teste</b> do <code>npm run db:seed</code>, todos com a senha <code>Senha123</code>: <code>joao@email.com</code> (aluno), <code>instrutor@espacofit.com</code> e <code>admin@espacofit.com</code>.</li>
+  <li><b>Depois de atualizar a main,</b> rode <code>npm run db:migrate</code> e faça login de novo: tokens antigos passam a ser recusados.</li>
+</ul>
+<pre>[dev] e-mail para joao@email.com: Seu código de recuperação — Espaço Fit
+Olá, João Silva!
+
+Seu código para redefinir a senha é 482913. Ele vale por 10 minutos.</pre>
+
+</body>
+</html>
