@@ -36,4 +36,4 @@ A equipe ainda não decidiu se haverá pagamento no app. `Subscription`/`Payment
 Postgres em `5433` e Redis em `6380` para não colidir com outros projetos na mesma máquina.
 
 ## 12. Recuperação de senha por código de 6 dígitos
-Segue as telas do Figma ("Verifique seu e-mail"). Código fica em `User.resetCode` com validade de 10 min. Até o job de e-mail existir, o código é impresso no console da API.
+Segue as telas do Figma ("Verifique seu e-mail"). Código fica em `User.resetCode` com validade de 10 min. Até o job de e-mail existir, o código é impresso no console da API. Cada código aceita 5 conferências somadas entre `verify-reset-code` e `reset-password`; a contagem sobe antes da comparação, então requisições em paralelo não furam o limite. "Reenviar código" gera outro e zera a contagem.

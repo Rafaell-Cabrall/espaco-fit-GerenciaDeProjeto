@@ -5,6 +5,7 @@ import { app } from '../src/app.ts'
 import { prisma } from '../src/lib/prisma.ts'
 
 const email = `teste-${Date.now()}@espacofit.com`
+const resetEmail = `reset-${Date.now()}@espacofit.com`
 let base: string
 let server: ReturnType<typeof app.listen>
 
@@ -25,7 +26,7 @@ before(async () => {
 })
 
 after(async () => {
-  await prisma.user.deleteMany({ where: { email } })
+  await prisma.user.deleteMany({ where: { email: { in: [email, resetEmail] } } })
   await prisma.$disconnect()
   server.close()
 })
@@ -68,5 +69,62 @@ describe('auth', () => {
   it('bloqueia rota autenticada sem token', async () => {
     const res = await fetch(`${base}/auth/me`)
     assert.equal(res.status, 401)
+  })
+})
+
+describe('recuperação de senha', () => {
+  const sendCode = async () => {
+    assert.equal((await post('/auth/forgot-password', { email: resetEmail })).status, 204)
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: resetEmail } })
+    return user.resetCode as string
+  }
+  const wrong = (code: string) => String((Number(code) + 1) % 1_000_000).padStart(6, '0')
+
+  before(async () => {
+    await post('/auth/register', {
+      name: 'Reset',
+      email: resetEmail,
+      password: 'Senha123',
+      acceptedTerms: true,
+    })
+  })
+
+  it('verifica o código, redefine a senha e não aceita o código de novo', async () => {
+    const code = await sendCode()
+    const verify = (c: string) => post('/auth/verify-reset-code', { email: resetEmail, code: c })
+
+    assert.equal((await verify(wrong(code))).status, 400)
+    assert.equal((await verify(code)).status, 204)
+
+    const reset = await post('/auth/reset-password', {
+      email: resetEmail,
+      code,
+      password: 'NovaSenha1',
+    })
+    assert.equal(reset.status, 204)
+    assert.equal(
+      (await post('/auth/login', { email: resetEmail, password: 'NovaSenha1' })).status,
+      200,
+    )
+    assert.equal((await verify(code)).status, 400)
+  })
+
+  it('invalida o código após 5 conferências, mesmo em paralelo', async () => {
+    const code = await sendCode()
+    const verify = (c: string) => post('/auth/verify-reset-code', { email: resetEmail, code: c })
+
+    await Promise.all(Array.from({ length: 5 }, () => verify(wrong(code))))
+    assert.equal((await verify(code)).status, 400)
+
+    const fresh = await sendCode() // "Reenviar código" libera novas tentativas
+    assert.equal((await verify(fresh)).status, 204)
+  })
+
+  it('responde igual para e-mail inexistente', async () => {
+    const res = await post('/auth/verify-reset-code', {
+      email: 'ninguem@espacofit.com',
+      code: '123456',
+    })
+    assert.equal(res.status, 400)
   })
 })

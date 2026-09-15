@@ -26,7 +26,7 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 **Back**
 - [x] Setup: monorepo, Docker, Prisma, auth, middlewares, CI
 - [x] Contratos da sprint em `packages/shared` até 14/09 (desbloqueia o Front 2); rotas em [`docs/api/`](api/README.md)
-- [ ] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
+- [x] `auth`: `POST /auth/verify-reset-code`, porque o Figma valida o código antes de pedir a senha nova
 - [ ] `anamnesis`: GET/PUT com `consentAt` obrigatório (RN09)
 - [ ] `plans`: ficha com divisões e exercícios, modelos, criar só com anamnese (RN05); leitura pelo aluno (RN01)
 - [ ] `exercises`: biblioteca padrão no seed, com GIF no MinIO por URL assinada (RNF06)

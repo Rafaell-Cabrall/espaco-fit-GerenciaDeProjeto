@@ -4,6 +4,7 @@ import {
   refreshSchema,
   registerSchema,
   resetPasswordSchema,
+  verifyResetCodeSchema,
 } from '@espacofit/shared'
 import { Router } from 'express'
 import { validate } from '../../lib/http.ts'
@@ -30,6 +31,11 @@ authRouter.get('/me', auth, async (req, res) => {
 
 authRouter.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   await service.forgotPassword(req.body.email)
+  res.status(204).end()
+})
+
+authRouter.post('/verify-reset-code', validate(verifyResetCodeSchema), async (req, res) => {
+  await service.verifyResetCode(req.body.email, req.body.code)
   res.status(204).end()
 })
 

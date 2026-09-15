@@ -48,6 +48,7 @@ model User {
   // recuperação de senha por código de 6 dígitos (tela "Verifique seu e-mail")
   resetCode          String?
   resetCodeExpiresAt DateTime?
+  resetCodeAttempts  Int       @default(0) // conferências do código atual; trava força bruta
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

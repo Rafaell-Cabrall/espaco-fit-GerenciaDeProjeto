@@ -66,20 +66,42 @@ export async function forgotPassword(email: string) {
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
   await prisma.user.update({
     where: { id: user.id },
-    data: { resetCode: code, resetCodeExpiresAt: new Date(Date.now() + 10 * 60_000) },
+    data: {
+      resetCode: code,
+      resetCodeExpiresAt: new Date(Date.now() + 10 * 60_000),
+      resetCodeAttempts: 0,
+    },
   })
   // ponytail: log só em dev até o job de e-mail existir (sprint 1); nunca logar em produção
   if (process.env.NODE_ENV !== 'production')
     console.log(`[dev] código de recuperação para ${email}: ${code}`)
 }
 
-export async function resetPassword(email: string, code: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } })
-  const valid =
-    user?.resetCode === code && user.resetCodeExpiresAt && user.resetCodeExpiresAt > new Date()
-  if (!valid) throw new HttpError(400, 'Código inválido ou expirado')
-  await prisma.user.update({
+// Verificar + redefinir gastam 2; sobram 3 erros de digitação antes de pedir "Reenviar código".
+const MAX_RESET_CHECKS = 5
+
+// Tela "Verifique seu e-mail". Conta a tentativa ANTES de comparar: requisições em paralelo
+// recebem contagens distintas, então ninguém testa mais de MAX_RESET_CHECKS códigos.
+export async function verifyResetCode(email: string, code: string) {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+  if (!user) throw new HttpError(400, 'Código inválido ou expirado')
+  const { resetCode, resetCodeExpiresAt, resetCodeAttempts } = await prisma.user.update({
     where: { id: user.id },
+    data: { resetCodeAttempts: { increment: 1 } },
+  })
+  const valid =
+    resetCodeAttempts <= MAX_RESET_CHECKS &&
+    resetCode === code &&
+    resetCodeExpiresAt !== null &&
+    resetCodeExpiresAt > new Date()
+  if (!valid) throw new HttpError(400, 'Código inválido ou expirado')
+  return user.id
+}
+
+export async function resetPassword(email: string, code: string, password: string) {
+  const id = await verifyResetCode(email, code)
+  await prisma.user.update({
+    where: { id },
     data: { passwordHash: await hashPassword(password), resetCode: null, resetCodeExpiresAt: null },
   })
 }
