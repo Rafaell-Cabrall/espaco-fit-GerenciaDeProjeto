@@ -29,6 +29,12 @@ authRouter.get('/me', auth, async (req, res) => {
   res.json(await service.me(req.user.id))
 })
 
+// "Sair da conta": invalida os tokens no servidor; o app apaga os tokens locais em seguida
+authRouter.post('/logout', auth, async (req, res) => {
+  await service.logout(req.user.id)
+  res.status(204).end()
+})
+
 authRouter.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   await service.forgotPassword(req.body.email)
   res.status(204).end()
