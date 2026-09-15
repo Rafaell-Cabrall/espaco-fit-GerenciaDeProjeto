@@ -3,9 +3,11 @@ import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 import { app } from '../src/app.ts'
 import { prisma } from '../src/lib/prisma.ts'
+import { queue } from '../src/lib/queue.ts'
 
 const email = `teste-${Date.now()}@espacofit.com`
-const resetEmail = `reset-${Date.now()}@espacofit.com`
+// example.com é reservado: se um worker local com SMTP pegar o job, não chega a ninguém real
+const resetEmail = `reset-${Date.now()}@example.com`
 let base: string
 let server: ReturnType<typeof app.listen>
 
@@ -27,6 +29,10 @@ before(async () => {
 
 after(async () => {
   await prisma.user.deleteMany({ where: { email: { in: [email, resetEmail] } } })
+  for (const job of await queue.getJobs(['waiting', 'delayed'])) {
+    if ('to' in job.data && job.data.to === resetEmail) await job.remove()
+  }
+  await queue.close()
   await prisma.$disconnect()
   server.close()
 })

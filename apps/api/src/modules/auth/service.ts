@@ -4,6 +4,7 @@ import { HttpError } from '../../lib/http.ts'
 import { signAccess, signRefresh, verifyToken } from '../../lib/jwt.ts'
 import { hashPassword, verifyPassword } from '../../lib/password.ts'
 import { prisma } from '../../lib/prisma.ts'
+import { enqueue } from '../../lib/queue.ts'
 
 const publicUser = { id: true, name: true, email: true, role: true } as const
 
@@ -59,7 +60,7 @@ export async function me(id: string) {
   return pub
 }
 
-// Gera código de 6 dígitos válido por 10 min. Envio do e-mail vai para a fila (worker).
+// Gera código de 6 dígitos válido por 10 min. O e-mail sai pelo worker; a resposta não espera o SMTP.
 export async function forgotPassword(email: string) {
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user) return // resposta idêntica para não revelar se o e-mail existe
@@ -72,9 +73,11 @@ export async function forgotPassword(email: string) {
       resetCodeAttempts: 0,
     },
   })
-  // ponytail: log só em dev até o job de e-mail existir (sprint 1); nunca logar em produção
-  if (process.env.NODE_ENV !== 'production')
-    console.log(`[dev] código de recuperação para ${email}: ${code}`)
+  await enqueue('email', {
+    to: email,
+    subject: 'Seu código de recuperação — Espaço Fit',
+    text: `Olá, ${user.name}!\n\nSeu código para redefinir a senha é ${code}. Ele vale por 10 minutos.\n\nSe você não pediu a troca de senha, ignore este e-mail.`,
+  })
 }
 
 // Verificar + redefinir gastam 2; sobram 3 erros de digitação antes de pedir "Reenviar código".
