@@ -16,25 +16,27 @@ const loadKg = z.number().min(0).max(1000).nullable()
 
 // ---------- auth ----------
 
-// Regra da tela "Criar nova senha": mínimo 8, uma maiúscula, um número
-export const password = z
-  .string()
-  .min(8, 'Mínimo 8 caracteres')
-  .regex(/[A-Z]/, 'Uma letra maiúscula')
-  .regex(/[0-9]/, 'Um número')
+// Regras da tela "Criar nova senha", na ordem do checklist. O app mostra cada uma com ✓.
+export const passwordRules = [
+  ['Mínimo 8 caracteres', /^[\s\S]{8,}$/],
+  ['Uma letra maiúscula', /[A-Z]/],
+  ['Um número', /[0-9]/],
+] as const
+export const password = passwordRules.reduce((s, [msg, re]) => s.regex(re, msg), z.string())
 
+const email = z.email('E-mail inválido').toLowerCase()
 const resetCode = z.string().regex(/^\d{6}$/, 'Código de 6 dígitos')
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(2),
-  email: z.email().toLowerCase(),
+  name: z.string().trim().min(2, 'Informe seu nome completo'),
+  email,
   password,
   acceptedTerms: z.literal(true, { error: 'Aceite os termos para continuar' }),
 })
 export type RegisterInput = z.infer<typeof registerSchema>
 
 export const loginSchema = z.object({
-  email: z.email().toLowerCase(),
+  email,
   password: z.string().min(1),
 })
 export type LoginInput = z.infer<typeof loginSchema>
@@ -42,9 +44,9 @@ export type LoginInput = z.infer<typeof loginSchema>
 export const refreshSchema = z.object({ refreshToken: z.string().min(1) })
 
 // "Enviar Código" e "Reenviar código" usam a mesma rota
-export const forgotPasswordSchema = z.object({ email: z.email().toLowerCase() })
+export const forgotPasswordSchema = z.object({ email })
 // Tela "Verifique seu e-mail": confere o código antes de abrir "Criar nova senha"
-export const verifyResetCodeSchema = z.object({ email: z.email().toLowerCase(), code: resetCode })
+export const verifyResetCodeSchema = z.object({ email, code: resetCode })
 export type VerifyResetCodeInput = z.infer<typeof verifyResetCodeSchema>
 export const resetPasswordSchema = verifyResetCodeSchema.extend({ password })
 
@@ -69,7 +71,7 @@ const userRef = userSchema.pick({ id: true, name: true })
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(2),
-  email: z.email().toLowerCase(),
+  email,
   password,
   role: Role,
 })
