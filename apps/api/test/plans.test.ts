@@ -1,8 +1,10 @@
-// Integração: exige Postgres, Redis e MinIO (docker compose up -d) e migrações aplicadas.
+// Integração: exige Postgres e Redis (docker compose up -d) e migrações aplicadas.
+// O teste de URL assinada roda só com o MinIO no ar; o CI não sobe MinIO.
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 import type { Plan, Role } from '@espacofit/shared'
 import { app } from '../src/app.ts'
+import { env } from '../src/lib/env.ts'
 import { signAccess } from '../src/lib/jwt.ts'
 import { prisma } from '../src/lib/prisma.ts'
 import { queue } from '../src/lib/queue.ts'
@@ -11,6 +13,10 @@ import { presign } from '../src/lib/storage.ts'
 
 const run = Date.now()
 const emails: string[] = []
+const minio = await fetch(`${env.S3_ENDPOINT}/minio/health/live`).then(
+  (r) => r.ok,
+  () => false,
+)
 
 let base: string
 let server: ReturnType<typeof app.listen>
@@ -202,7 +208,9 @@ describe('fichas', () => {
     assert.equal((await call('GET', '/exercises', aluno.token)).status, 403)
   })
 
-  it('URL assinada envia e lê no MinIO; assinatura adulterada é recusada', async () => {
+  it('URL assinada envia e lê no MinIO; assinatura adulterada é recusada', {
+    skip: !minio && 'MinIO fora do ar',
+  }, async () => {
     const key = `test/${run}.txt`
     const put = await fetch(presign('PUT', key), { method: 'PUT', body: 'ok' })
     assert.equal(put.status, 200)

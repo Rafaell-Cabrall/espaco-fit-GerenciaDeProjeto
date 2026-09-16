@@ -42,7 +42,7 @@ npm run dev:mobile   # QR code do Expo
 ## Fluxo de trabalho
 
 - `main` protegida; trabalhe em `feat/<ru>-<descricao>` (ex.: `feat/ru01-fichas`) e abra PR.
-- Sem CI: antes de abrir o PR, rode `npm run lint`, `npm run typecheck` e, se tocou no back, os testes da API. Squash merge.
+- CI roda lint, typecheck e testes da API (sem MinIO: o teste de URL assinada só roda localmente). Squash merge.
 - Contrato novo/alterado (request/response) entra em `packages/shared` antes do front e do back usarem.
 - Módulos da API vivem em `apps/api/src/modules/<nome>/{router,service}.ts`. Os que ainda respondem 501 estão marcados com `TODO(sprint N)`.
 - No app, `app/` só tem rotas finas; a tela fica em `apps/mobile/src/screens/<Nome>/`. Regras em [apps/mobile/src/README.md](apps/mobile/src/README.md).

@@ -3,7 +3,7 @@
 Complementa o Documento Arquitetural v1 (React Native + Expo, Node + Express, PostgreSQL + Prisma, Redis + BullMQ, MinIO/S3, Expo Push, JWT próprio, monólito modular + worker). Cada item: contexto → decisão → consequência.
 
 ## 1. Monorepo com npm workspaces
-1 back e 2 fronts precisam do mesmo contrato de API. `packages/shared` guarda os schemas zod usados dos dois lados. Sem Turborepo/Nx: três pacotes não justificam. Consequência: um `npm install` na raiz. Sem CI: a equipe roda lint, typecheck e testes localmente antes do PR.
+1 back e 2 fronts precisam do mesmo contrato de API. `packages/shared` guarda os schemas zod usados dos dois lados. Sem Turborepo/Nx: três pacotes não justificam. Consequência: um `npm install` na raiz; CI única.
 
 ## 2. Node 24 executa TypeScript nativamente
 Sem ts-node/tsx/build step: `node src/server.ts`. Imports relativos usam extensão `.ts` e o `tsconfig` liga `erasableSyntaxOnly` (proíbe `enum`, parameter properties e namespaces com valor). `.nvmrc` = 24 fixa a versão para a equipe.
