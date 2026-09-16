@@ -1,12 +1,25 @@
-// RU01: biblioteca de exercícios + URL assinada de upload (MinIO)
+// RU01: biblioteca de exercícios; mídia por URL assinada (MinIO)
+import type { Exercise } from '@prisma/client'
 import { Router } from 'express'
-import { auth } from '../../middlewares/auth.ts'
+import { prisma } from '../../lib/prisma.ts'
+import { mediaUrl } from '../../lib/storage.ts'
+import { auth, requireRole } from '../../middlewares/auth.ts'
+
+export const toExercise = ({ id, name, muscleGroup, description, mediaKey }: Exercise) => ({
+  id,
+  name,
+  muscleGroup,
+  description,
+  mediaUrl: mediaUrl(mediaKey),
+})
 
 export const exercisesRouter = Router()
 
 exercisesRouter.use(auth)
 
-// TODO(sprint 1): implementar. Roles esperados: INSTRUTOR,ADMIN
-exercisesRouter.get('/', (_req, res) =>
-  res.status(501).json({ error: 'Módulo exercises ainda não implementado' }),
-)
+exercisesRouter.get('/', requireRole('INSTRUTOR', 'ADMIN'), async (_req, res) => {
+  const rows = await prisma.exercise.findMany({
+    orderBy: [{ muscleGroup: 'asc' }, { name: 'asc' }],
+  })
+  res.json(rows.map(toExercise))
+})

@@ -6,14 +6,15 @@ import { validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, requireLink, requireRole } from '../../middlewares/auth.ts'
 
-// RN04: vence após 60 dias sem atualização
-const OUTDATED_MS = 60 * 24 * 60 * 60 * 1000
+// RN04: anamnese e ficha vencem após 60 dias sem atualização
+export const isOutdated = (updatedAt: Date) =>
+  Date.now() - updatedAt.getTime() > 60 * 24 * 60 * 60 * 1000
 
 const toResponse = ({ answers, consentAt, updatedAt }: Anamnesis) => ({
   ...(answers as object),
   consentAt,
   updatedAt,
-  outdated: Date.now() - updatedAt.getTime() > OUTDATED_MS,
+  outdated: isOutdated(updatedAt),
 })
 
 export const anamnesisRouter = Router()

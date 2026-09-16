@@ -30,8 +30,8 @@ Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Document
 | `PUT /anamnesis/:studentId` | o próprio aluno | `anamnesisInputSchema` | `anamnesisSchema` | Anamnese, Atualizar Anamnese |
 | `GET /plans/student/:studentId` | vínculo | — | `planSchema` ou `null` | Home (treino do dia), Meus Treinos |
 | `GET /plans/:id` | instrutor autor, admin | — | `planSchema` | ficha em rascunho |
-| `POST /plans` | instrutor com vínculo | `createPlanSchema` | `201` `planSchema` (DRAFT); `409` sem anamnese | Criar Nova Ficha |
-| `PUT /plans/:id` | instrutor autor | `updatePlanSchema` | `planSchema` | editar ficha |
+| `POST /plans` | instrutor com vínculo | `createPlanSchema` | `201` `planSchema` (DRAFT); `409` sem anamnese; `400` exercício inexistente | Criar Nova Ficha |
+| `PUT /plans/:id` | instrutor autor | `updatePlanSchema` | `planSchema`; `409` se não for rascunho | editar ficha |
 | `POST /plans/:id/publish` | instrutor autor | — | `planSchema` | Publicar Ficha |
 | `GET /plans/templates` | instrutor | — | `templateSchema[]` | modelos |
 | `POST /plans/templates` | instrutor | `createTemplateSchema` | `201` `templateSchema` | salvar como modelo |
@@ -51,6 +51,8 @@ Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Document
 - **Treino do dia (RN08)**: `todayDivisionId` é a divisão seguinte à do último treino finalizado, na ordem A→B→C, voltando ao início. Sem histórico, é a primeira. O aluno pode iniciar qualquer outra aba.
 - **Tempo estimado**: `estimatedMinutes` soma, por exercício, `séries × (40 s + descanso)`, arredondado para cima.
 - **Criar ficha (RN05)**: exige anamnese respondida. O app do instrutor confere antes com `GET /anamnesis/:studentId` e mostra o alerta. Publicar uma ficha nova expira a ativa anterior.
+- **Editar ficha ativa**: só rascunho aceita `PUT`, porque a ficha ativa já tem sessões e cargas presas às divisões. Para alterar a ativa, o app envia as divisões dela (editadas) para `POST /plans` e publica; a anterior expira e o histórico fica.
+- **Mídia**: `mediaUrl` é uma URL assinada válida por 1 hora. O app não guarda a URL; pede a ficha de novo se o GIF falhar.
 - **Ficha e anamnese vencidas (RN04)**: `outdated` fica `true` após 60 dias sem atualização. Só sinaliza, não bloqueia o treino.
 - **Treino realizado (RN03)**: finalizar exige ao menos uma série. Sem séries, o app mostra o pop-up e "Sair do treino" descarta a sessão.
 - **Carga (RN02)**: só o aluno dono da sessão registra ou altera. O instrutor define apenas `targetLoadKg`.
