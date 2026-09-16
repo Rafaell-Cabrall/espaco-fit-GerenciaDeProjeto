@@ -31,7 +31,7 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 - [x] `anamnesis`: GET/PUT com `consentAt` obrigatório (RN09)
 - [x] `plans`: ficha com divisões e exercícios, modelos, criar só com anamnese (RN05); leitura pelo aluno (RN01)
 - [ ] `exercises`: biblioteca padrão no seed, com GIF no MinIO por URL assinada (RNF06) — listagem e URL assinada prontas; faltam os arquivos de GIF
-- [ ] `sessions`: iniciar sessão, registrar série com carga (só aluno, RN02), finalizar, descartar sem série (RN03)
+- [x] `sessions`: iniciar sessão, registrar série com carga (só aluno, RN02), finalizar, descartar sem série (RN03)
 - [x] Treino do dia: rotação A→B→C com escolha manual (RN08)
 - [ ] `users` e `links`: criar usuários e vincular aluno ↔ instrutor (usado só via API/seed nesta sprint)
 - [ ] Coleção do Insomnia/Bruno em `docs/api/` para o instrutor "montar ficha" na demo
