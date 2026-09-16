@@ -1,0 +1,20 @@
+meta {
+  name: Ficha do aluno
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/plans/student/{{studentId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{instructorToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{planId}}
+}

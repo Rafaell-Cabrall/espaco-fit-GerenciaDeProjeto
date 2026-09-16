@@ -1,0 +1,27 @@
+meta {
+  name: Biblioteca de exercícios
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/exercises
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{instructorToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  // Uma variável por exercício para a ficha: "Leg Press 45°" vira {{ex_Leg_Press_45}}
+  for (const e of res.body) {
+    const key = e.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    bru.setVar("ex_" + key, e.id);
+  }
+}

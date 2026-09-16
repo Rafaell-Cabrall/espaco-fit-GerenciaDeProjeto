@@ -1,0 +1,24 @@
+meta {
+  name: Anamnese do aluno
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/anamnesis/{{studentId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{instructorToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  // RN05: sem anamnese, o POST /plans responde 409. O aluno responde no app antes de seguir.
+  if (res.body === null) throw new Error("Aluno ainda não respondeu a anamnese no app (RN05).");
+}

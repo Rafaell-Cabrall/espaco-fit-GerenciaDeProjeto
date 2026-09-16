@@ -1,0 +1,26 @@
+meta {
+  name: Vincular aluno ao instrutor
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/links
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "studentId": "{{studentId}}",
+    "instructorId": "{{instructorId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
