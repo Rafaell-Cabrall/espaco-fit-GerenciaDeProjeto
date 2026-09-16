@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Anamnese — Guia do front · Espaço Fit</title>
+<!-- Fonte do PDF docs/api/anamnese.pdf. Regerar pelo PowerShell (pelo Git Bash o Edge sai sem gravar):
+     Start-Process msedge -Wait -ArgumentList '--headless=new','--no-pdf-header-footer',
+       "--print-to-pdf=$PWD\docs\api\anamnese.pdf","file:///$PWD/docs/api/anamnese.html" -->
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  :root {
+    --ink: #1a1a1a; --muted: #5c5c5c; --line: #e3e3e3; --soft: #f6f6f6;
+    --brand: #c8102e; --ok: #1e7d3a; --warn: #a15c00; --err: #b3261e;
+    --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+  code, pre, .path, .s, .m { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10.5pt/1.5 "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); }
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  h2 { font-size: 15pt; margin: 22px 0 10px; padding-top: 6px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  code { font-family: var(--mono); font-size: 9pt; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+  pre { font-family: var(--mono); font-size: 8.6pt; line-height: 1.45; background: #1f1f1f; color: #f1f1f1;
+        padding: 10px 12px; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; break-inside: avoid; }
+  pre .c { color: #9aa0a6; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.6pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { background: var(--soft); font-weight: 600; }
+  .cover { border-left: 6px solid var(--brand); padding: 4px 0 4px 16px; margin-bottom: 18px; }
+  .cover .kicker { color: var(--brand); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 9pt; }
+  .cover h1 { font-size: 24pt; margin: 4px 0 6px; }
+  .cover .meta { color: var(--muted); font-size: 9.5pt; }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; break-inside: avoid; }
+  .box.key { border-color: var(--brand); background: #fff7f8; }
+  .box h3 { margin-top: 0; }
+  .route { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; break-inside: avoid; overflow: hidden; }
+  .route .head { display: flex; gap: 10px; align-items: baseline; background: var(--soft); padding: 7px 12px; border-bottom: 1px solid var(--line); }
+  .route .head .path { font-family: var(--mono); font-weight: 600; font-size: 10pt; }
+  .route .head .who { margin-left: auto; color: var(--muted); font-size: 9pt; }
+  .route .body { padding: 6px 12px 8px; }
+  .route table { margin: 4px 0; }
+  .m { font-family: var(--mono); font-weight: 700; font-size: 8.5pt; padding: 2px 6px; border-radius: 4px; color: #fff; }
+  .m.put { background: #6b4fa0; } .m.get { background: #2f5d9e; }
+  .s { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+  .s.ok { color: var(--ok); } .s.warn { color: var(--warn); } .s.err { color: var(--err); }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 28px; margin: 6px 0; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 50%;
+                      background: var(--ink); color: #fff; font-size: 8.5pt; font-weight: 700; text-align: center; line-height: 19px; }
+  .check { list-style: none; padding: 0; }
+  .check li { padding-left: 24px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 0; top: 3px; width: 12px; height: 12px; border: 1.5px solid var(--ink); border-radius: 3px; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">Espaço Fit · API</div>
+  <h1>Anamnese: guia para o front</h1>
+  <div class="meta">Formulário do primeiro acesso do aluno · Versão 1 · 16/09/2026<br>
+  Vale a partir do merge do PR da anamnese na <code>main</code>.</div>
+</div>
+
+<div class="box key">
+  <h3>Resumo</h3>
+  <ul>
+    <li>São duas rotas: <code>GET</code> para ler e <code>PUT</code> para responder ou atualizar. As duas usam o <code>id</code> do aluno logado, que vem de <code>useAuth().user.id</code>.</li>
+    <li><b>Se o <code>GET</code> devolver <code>null</code>, o aluno ainda não respondeu:</b> abra o formulário antes de liberar a Home.</li>
+    <li>O consentimento de uso dos dados de saúde é obrigatório (LGPD). Sem ele a API recusa o envio.</li>
+    <li>Tipos, opções e mensagens vêm de <code>@espacofit/shared</code>. Não redeclarar no app.</li>
+  </ul>
+</div>
+
+<h2>1. Onde entra no app</h2>
+<ol class="steps">
+  <li>O aluno faz login, ou abre o app já logado, e cai no grupo <code>(aluno)</code>.</li>
+  <li>Antes de mostrar a Home, chame <code>GET /anamnesis/:id</code> com o <code>user.id</code>.</li>
+  <li>Se vier <code>null</code>, abra o formulário de anamnese. Se vier um objeto, siga para a Home.</li>
+  <li>No envio do formulário, chame <code>PUT /anamnesis/:id</code>. Com <span class="s ok">200</span>, siga para a Home.</li>
+</ol>
+<p>Só o aluno passa por esse fluxo. Instrutor e admin não respondem anamnese.</p>
+<pre><span class="c">// null = ainda não respondeu: abrir o formulário antes da Home</span>
+import { anamnesisSchema } from '@espacofit/shared'
+import { api } from '../../api/client'
+
+export const buscarAnamnese = (studentId: string) =>
+  api(`/anamnesis/${studentId}`, anamnesisSchema.nullable())</pre>
+<div class="box">
+  <h3>Erro de rede não é <code>null</code></h3>
+  <p>Só a API devolve <code>null</code>. Se a chamada falhar por falta de internet, mostre o erro com "Tentar de novo" em vez de abrir o formulário. Caso contrário, um aluno que já respondeu seria mandado de volta para a anamnese.</p>
+</div>
+
+<div style="break-inside: avoid">
+<h2>2. Formulário</h2>
+<table>
+  <tr><th>Campo na tela</th><th>Chave</th><th>Tipo</th><th>Valores e regras</th></tr>
+  <tr><td>Lesões ou restrições</td><td><code>injuries</code></td><td>texto, opcional</td><td>Até 500 caracteres. Vazio é exibido como "Sem restrições".</td></tr>
+  <tr><td>Nível de condicionamento</td><td><code>fitnessLevel</code></td><td>escolha única</td><td>Iniciante · Intermediário · Avançado</td></tr>
+  <tr><td>Objetivo principal</td><td><code>goal</code></td><td>escolha única</td><td>Hipertrofia · Emagrecimento · Condicionamento · Saúde e bem-estar</td></tr>
+  <tr><td>Frequência semanal</td><td><code>weeklyFrequency</code></td><td>escolha única</td><td>1 - 2 dias · 3 dias · 4 - 5 dias · 6 - 7 dias</td></tr>
+  <tr><td>Doenças preexistentes</td><td><code>conditions</code></td><td>texto, opcional</td><td>Até 500 caracteres. Vazio é exibido como "Nenhuma".</td></tr>
+  <tr><td>Autorização dos dados de saúde</td><td><code>consent</code></td><td>checkbox</td><td>Precisa ser <code>true</code>. Mensagem: "Autorize o uso dos seus dados de saúde para continuar".</td></tr>
+</table>
+</div>
+<p>Os valores das escolhas são o próprio texto exibido. Monte as opções direto do schema: <code>FitnessLevel.options</code>, <code>Goal.options</code> e <code>WeeklyFrequency.options</code>. Assim, se uma opção mudar, o app acompanha sem alteração.</p>
+<p class="muted">Rótulos e opções seguem a tela Evolução &gt; Anamnese do protótipo. Se o design da tela do primeiro acesso mudar alguma opção, avise o back: a mudança é feita no schema.</p>
+
+<div class="box key">
+  <h3>Valide no app antes de enviar</h3>
+  <p>Se o envio for inválido, a API responde só <span class="s err">400</span> "Dados inválidos", sem o texto de cada campo. As mensagens para o aluno vêm do <code>anamnesisInputSchema</code> no app, principalmente a do consentimento.</p>
+</div>
+<pre><span class="c">// screens/Anamnese/index.tsx</span>
+import { type AnamnesisInput, anamnesisInputSchema, anamnesisSchema } from '@espacofit/shared'
+import { api, ApiError } from '../../api/client'
+
+async function enviar(studentId: string, values: AnamnesisInput) {
+  const check = anamnesisInputSchema.safeParse(values)
+  if (!check.success) return setErro(check.error.issues[0].message)
+  try {
+    await api(`/anamnesis/${studentId}`, anamnesisSchema, { method: 'PUT', body: check.data })
+    <span class="c">// navegar para a Home</span>
+  } catch (e) {
+    if (e instanceof ApiError) setErro(e.message)
+  }
+}</pre>
+
+<h2>3. Referência das rotas</h2>
+<p class="muted">Base: <code>EXPO_PUBLIC_API_URL</code>. As duas rotas exigem login; o cliente <code>api()</code> já envia o token e o renova. Erros vêm em <code>{"error": "…"}</code>.</p>
+
+<div class="route">
+  <div class="head"><span class="m get">GET</span><span class="path">/anamnesis/:studentId</span><span class="who">o próprio aluno · instrutor com vínculo</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">200</td><td><code>anamnesisSchema</code>, exemplo abaixo</td></tr>
+      <tr><td class="s ok">200</td><td><code>null</code>: o aluno ainda não respondeu</td></tr>
+      <tr><td class="s err">403</td><td>Sem vínculo ativo com este aluno <span class="muted">(id de outro aluno)</span></td></tr>
+      <tr><td class="s err">403</td><td>Sem permissão <span class="muted">(admin não lê dado de saúde)</span></td></tr>
+    </table>
+<pre>{
+  "injuries": "",
+  "fitnessLevel": "Iniciante",
+  "goal": "Hipertrofia",
+  "weeklyFrequency": "3 dias",
+  "conditions": "Asma",
+  "consentAt": "2026-09-16T14:02:11.482Z",
+  "updatedAt": "2026-09-16T14:02:11.482Z",
+  "outdated": false
+}</pre>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m put">PUT</span><span class="path">/anamnesis/:studentId</span><span class="who">só o próprio aluno · <code>anamnesisInputSchema</code></span></div>
+  <div class="body">
+<pre>{
+  "injuries": "",
+  "fitnessLevel": "Iniciante",
+  "goal": "Hipertrofia",
+  "weeklyFrequency": "3 dias",
+  "conditions": "Asma",
+  "consent": true
+}</pre>
+    <table>
+      <tr><td class="s ok">200</td><td><code>anamnesisSchema</code>, igual ao <code>GET</code>. O <code>consent</code> não volta; no lugar dele vem <code>consentAt</code>.</td></tr>
+      <tr><td class="s err">400</td><td>Dados inválidos. Não acontece se o formulário validar com o schema.</td></tr>
+      <tr><td class="s err">403</td><td>Sem vínculo ativo com este aluno <span class="muted">(id de outro aluno)</span></td></tr>
+      <tr><td class="s err">403</td><td>Sem permissão <span class="muted">(instrutor ou admin)</span></td></tr>
+    </table>
+    <p>Enviar de novo substitui as respostas e renova <code>consentAt</code> e <code>updatedAt</code>. É a mesma rota do futuro botão "Atualizar Anamnese".</p>
+  </div>
+</div>
+
+<h3>Campos da resposta calculados pela API</h3>
+<table>
+  <tr><th>Campo</th><th>Significado</th></tr>
+  <tr><td><code>consentAt</code></td><td>Data e hora, em ISO 8601 UTC, do último envio com a autorização marcada.</td></tr>
+  <tr><td><code>updatedAt</code></td><td>Data e hora da última resposta. Serve para "Anamnese atualizada em 16/09/2026".</td></tr>
+  <tr><td><code>outdated</code></td><td><code>true</code> após 60 dias sem atualizar. Só sinaliza e não bloqueia nada. É usado na aba Evolução, fora do primeiro acesso.</td></tr>
+</table>
+
+<h2>4. Checklist do app</h2>
+<ul class="check">
+  <li>Ao entrar no grupo <code>(aluno)</code>, buscar a anamnese antes de liberar a Home.</li>
+  <li><code>null</code> abre o formulário. Erro de rede mostra "Tentar de novo" e não abre o formulário.</li>
+  <li>Opções de nível, objetivo e frequência montadas a partir de <code>.options</code> dos schemas.</li>
+  <li>Checkbox de autorização dos dados de saúde, validado com <code>anamnesisInputSchema</code> antes do envio.</li>
+  <li>Campos de texto opcionais podem ir vazios ou ser omitidos.</li>
+  <li>Envio com sucesso leva para a Home.</li>
+  <li>O <code>:studentId</code> das rotas é sempre o <code>user.id</code> do aluno logado.</li>
+</ul>
+
+<h2>5. Rodando local</h2>
+<ul>
+  <li><b>Dois terminais bastam:</b> <code>npm run dev:api</code> e <code>npm run dev:mobile</code>. A anamnese não usa o worker e não traz migração nova.</li>
+  <li><b>Usuários de teste</b> do <code>npm run db:seed</code>, com a senha <code>Senha123</code>: <code>joao@email.com</code> e <code>maria@email.com</code> são alunos e começam sem anamnese. <code>instrutor@espacofit.com</code> tem vínculo com os dois e serve para testar a leitura pelo instrutor.</li>
+  <li><b>Para ver o formulário de novo,</b> crie uma conta nova pelo cadastro ou apague a linha da tabela <code>Anamnesis</code> com <code>npm -w apps/api run prisma:studio</code>.</li>
+</ul>
+
+</body>
+</html>
