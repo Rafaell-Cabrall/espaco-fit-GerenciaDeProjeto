@@ -215,7 +215,11 @@ describe('fichas', () => {
     const put = await fetch(presign('PUT', key), { method: 'PUT', body: 'ok' })
     assert.equal(put.status, 200)
     assert.equal(await (await fetch(presign('GET', key))).text(), 'ok')
-    const bad = presign('GET', key).replace(/X-Amz-Signature=\w/, 'X-Amz-Signature=0')
+    // troca o primeiro dígito por outro, sempre diferente do original
+    const bad = presign('GET', key).replace(
+      /X-Amz-Signature=(\w)/,
+      (_, c) => `X-Amz-Signature=${c === '0' ? '1' : '0'}`,
+    )
     assert.equal((await fetch(bad)).status, 403)
   })
 })
