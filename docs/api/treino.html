@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ficha e treino — Guia do front · Espaço Fit</title>
+<!-- Fonte do PDF docs/api/treino.pdf. Regerar pelo PowerShell (pelo Git Bash o Edge sai sem gravar):
+     Start-Process msedge -Wait -ArgumentList '--headless=new','--no-pdf-header-footer',
+       "--print-to-pdf=$PWD\docs\api\treino.pdf","file:///$PWD/docs/api/treino.html" -->
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  :root {
+    --ink: #1a1a1a; --muted: #5c5c5c; --line: #e3e3e3; --soft: #f6f6f6;
+    --brand: #c8102e; --ok: #1e7d3a; --warn: #a15c00; --err: #b3261e;
+    --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+  code, pre, .path, .s, .m { font-variant-ligatures: none; font-feature-settings: "calt" 0, "liga" 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10.5pt/1.5 "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); }
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  h2 { font-size: 15pt; margin: 22px 0 10px; padding-top: 6px; border-top: 2px solid var(--ink); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; break-after: avoid; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  code { font-family: var(--mono); font-size: 9pt; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+  pre { font-family: var(--mono); font-size: 8.6pt; line-height: 1.45; background: #1f1f1f; color: #f1f1f1;
+        padding: 10px 12px; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; break-inside: avoid; }
+  pre .c { color: #9aa0a6; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.6pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { background: var(--soft); font-weight: 600; }
+  .cover { border-left: 6px solid var(--brand); padding: 4px 0 4px 16px; margin-bottom: 18px; }
+  .cover .kicker { color: var(--brand); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 9pt; }
+  .cover h1 { font-size: 24pt; margin: 4px 0 6px; }
+  .cover .meta { color: var(--muted); font-size: 9.5pt; }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; break-inside: avoid; }
+  .box.key { border-color: var(--brand); background: #fff7f8; }
+  .box h3 { margin-top: 0; }
+  .route { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; break-inside: avoid; overflow: hidden; }
+  .route .head { display: flex; gap: 10px; align-items: baseline; background: var(--soft); padding: 7px 12px; border-bottom: 1px solid var(--line); }
+  .route .head .path { font-family: var(--mono); font-weight: 600; font-size: 10pt; }
+  .route .head .who { margin-left: auto; color: var(--muted); font-size: 9pt; text-align: right; }
+  .route .body { padding: 6px 12px 8px; }
+  .route table { margin: 4px 0; }
+  .m { font-family: var(--mono); font-weight: 700; font-size: 8.5pt; padding: 2px 6px; border-radius: 4px; color: #fff; }
+  .m.put { background: #6b4fa0; } .m.get { background: #2f5d9e; } .m.post { background: #1e7d3a; } .m.del { background: #b3261e; }
+  .s { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+  .s.ok { color: var(--ok); } .s.warn { color: var(--warn); } .s.err { color: var(--err); }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 28px; margin: 6px 0; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 50%;
+                      background: var(--ink); color: #fff; font-size: 8.5pt; font-weight: 700; text-align: center; line-height: 19px; }
+  .check { list-style: none; padding: 0; }
+  .check li { padding-left: 24px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 0; top: 3px; width: 12px; height: 12px; border: 1.5px solid var(--ink); border-radius: 3px; }
+  .muted { color: var(--muted); }
+  .page { break-before: page; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">Espaço Fit · API</div>
+  <h1>Ficha e treino: guia para o front</h1>
+  <div class="meta">Home, Meus Treinos e execução do treino (aluno) · Montagem da ficha (instrutor, Sprint 2) · Versão 1 · 16/09/2026<br>
+  Vale a partir do merge do PR #7 na <code>main</code>. Rode <code>npm run db:migrate</code> e <code>npm run db:seed</code> depois do pull.</div>
+</div>
+
+<div class="box key">
+  <h3>Resumo</h3>
+  <ul>
+    <li><b>Uma chamada só alimenta a Home e Meus Treinos:</b> <code>GET /plans/student/:id</code>. Ela já traz o treino do dia, o tempo estimado, a última carga de cada exercício e o GIF.</li>
+    <li><b>Executar o treino</b> usa 5 rotas de <code>/sessions</code>: iniciar, concluir série, desmarcar série, finalizar e sair do treino.</li>
+    <li><b>O id do item da ficha</b> (<code>exercises[i].id</code>) é o que vai ao registrar série. O <code>exercises[i].exercise.id</code> é o do exercício na biblioteca e não serve para isso.</li>
+    <li><b>Nada é calculado no app:</b> treino do dia, "~29 min" e carga sugerida vêm prontos. Tipos vêm de <code>@espacofit/shared</code>.</li>
+  </ul>
+</div>
+
+<h2>1. Telas e rotas</h2>
+<table>
+  <tr><th>Tela</th><th>Ação</th><th>Rota</th></tr>
+  <tr><td>Home do aluno</td><td>Card "Treino do dia"</td><td><code>GET /plans/student/:studentId</code></td></tr>
+  <tr><td>Meus Treinos</td><td>Abas por divisão, selo "Hoje"</td><td>a mesma chamada, do cache</td></tr>
+  <tr><td rowspan="5">Execução do treino</td><td>Iniciar</td><td><code>POST /sessions</code></td></tr>
+  <tr><td>Concluir série ou corrigir a carga</td><td><code>PUT /sessions/:id/sets</code></td></tr>
+  <tr><td>Desmarcar série</td><td><code>DELETE /sessions/:id/sets/:itemId/:setNumber</code></td></tr>
+  <tr><td>Finalizar Treino</td><td><code>POST /sessions/:id/finish</code></td></tr>
+  <tr><td>Pop-up "nenhuma série" → Sair do treino</td><td><code>DELETE /sessions/:id</code></td></tr>
+</table>
+<p>Só o aluno logado usa essas rotas, sempre com o próprio <code>user.id</code>. O instrutor lê a mesma ficha pelo <code>GET</code> quando tem vínculo com o aluno.</p>
+
+<h2>2. Home e Meus Treinos</h2>
+<pre><span class="c">// api/plans.ts — null = o instrutor ainda não publicou a ficha</span>
+import { planSchema } from '@espacofit/shared'
+import { api } from './client'
+
+export const buscarFicha = (studentId: string) =>
+  api(`/plans/student/${studentId}`, planSchema.nullable())
+
+<span class="c">// hooks/usePlan.ts</span>
+export const usePlan = (studentId: string) =>
+  useQuery({ queryKey: ['plan', studentId], queryFn: () => buscarFicha(studentId) })</pre>
+
+<h3>Do protótipo para o campo</h3>
+<table>
+  <tr><th>Na tela</th><th>De onde vem</th></tr>
+  <tr><td>"Treino A — Peito &amp; Tríceps"</td><td><code>`Treino ${d.label} — ${d.title}`</code></td></tr>
+  <tr><td>"5 exercícios"</td><td><code>d.exercises.length</code></td></tr>
+  <tr><td>"~29 min estimado"</td><td><code>d.estimatedMinutes</code></td></tr>
+  <tr><td>Card "Treino do dia" e selo "Hoje"</td><td>divisão cujo <code>id === plan.todayDivisionId</code></td></tr>
+  <tr><td>"Ficha atual — atualizada há 5 dias"</td><td><code>plan.updatedAt</code> (ISO 8601 UTC)</td></tr>
+  <tr><td>Aviso de ficha vencida</td><td><code>plan.outdated</code>: <code>true</code> após 60 dias. Só avisa, o treino continua liberado.</td></tr>
+  <tr><td>"4 séries · 8-10 reps · 90 s desc."</td><td><code>e.sets</code>, <code>e.reps</code>, <code>e.restSeconds</code></td></tr>
+  <tr><td>Carga já preenchida no campo "Carga (kg)"</td><td><code>e.lastLoadKg ?? e.targetLoadKg</code>. Os dois podem ser <code>null</code> (peso corporal): campo vazio.</td></tr>
+  <tr><td>Nome, grupo, demonstração e GIF</td><td><code>e.exercise.name</code>, <code>.muscleGroup</code>, <code>.description</code>, <code>.mediaUrl</code></td></tr>
+</table>
+
+<div class="box">
+  <h3>Três cuidados</h3>
+  <ul>
+    <li><b>Erro de rede não é <code>null</code>.</b> <code>null</code> vem só da API e abre o estado vazio ("ficha ainda não disponível", texto do design). Sem internet, mostre a ficha do cache ou "Tentar de novo".</li>
+    <li><b><code>mediaUrl</code> vale 1 hora.</b> Não salve a URL. Se o GIF falhar ao carregar, refaça a consulta da ficha. Hoje todos vêm <code>null</code> porque os GIFs ainda não foram enviados: use um placeholder.</li>
+    <li><b>Treino do dia só avança depois de finalizar.</b> Ao receber <span class="s ok">200</span> no finish, invalide <code>['plan', studentId]</code> para a Home mostrar a próxima divisão e as cargas novas.</li>
+  </ul>
+</div>
+
+<h2 class="page">3. Execução do treino</h2>
+<ol class="steps">
+  <li><b>Iniciar</b> (em qualquer aba, não só a do dia): gere um id no aparelho e chame <code>POST /sessions</code> com <code>{ id, divisionId }</code>. Guarde o id do treino no estado da tela.</li>
+  <li><b>Concluir série:</b> <code>PUT /sessions/:id/sets</code> com o id do item, o número da série (começa em 1) e a carga. Depois dispare o cronômetro de descanso com <code>restSeconds</code>.</li>
+  <li><b>Corrigir a carga</b> de uma série já concluída: o mesmo <code>PUT</code> com a carga nova. Não cria outra série.</li>
+  <li><b>Desmarcar série:</b> <code>DELETE /sessions/:id/sets/:itemId/:setNumber</code>.</li>
+  <li><b>"Nota do exercício":</b> guarde no estado da tela. As notas vão todas juntas ao finalizar.</li>
+  <li><b>Finalizar Treino:</b> <code>POST /sessions/:id/finish</code> com <code>{ notes }</code>. Com <span class="s ok">200</span>, abra a tela de treino concluído. Com <span class="s warn">422</span>, abra o pop-up "Nenhum exercício concluído".</li>
+  <li><b>"Sair do treino"</b> no pop-up: <code>DELETE /sessions/:id</code> e volte para a tela anterior. O treino sem série é descartado e não conta como dia treinado.</li>
+</ol>
+
+<pre><span class="c">// api/sessions.ts — rotas 204 usam z.undefined()</span>
+import { type FinishSessionInput, sessionSchema, setLogSchema, type SetLogInput } from '@espacofit/shared'
+import * as Crypto from 'expo-crypto' <span class="c">// npx expo install expo-crypto</span>
+import { z } from 'zod'
+import { api } from './client'
+
+export const iniciarTreino = (divisionId: string) =>
+  api('/sessions', sessionSchema, { method: 'POST', body: { id: Crypto.randomUUID(), divisionId } })
+
+export const concluirSerie = (sessionId: string, body: SetLogInput) =>
+  api(`/sessions/${sessionId}/sets`, setLogSchema, { method: 'PUT', body })
+
+export const desmarcarSerie = (sessionId: string, itemId: string, setNumber: number) =>
+  api(`/sessions/${sessionId}/sets/${itemId}/${setNumber}`, z.undefined(), { method: 'DELETE' })
+
+export const finalizarTreino = (sessionId: string, body: FinishSessionInput) =>
+  api(`/sessions/${sessionId}/finish`, sessionSchema, { method: 'POST', body })
+
+export const sairDoTreino = (sessionId: string) =>
+  api(`/sessions/${sessionId}`, z.undefined(), { method: 'DELETE' })</pre>
+
+<pre><span class="c">// screens/ExecucaoTreino — item = division.exercises[i]</span>
+await concluirSerie(sessao.id, {
+  divisionExerciseId: item.id,        <span class="c">// id do item da ficha, NÃO item.exercise.id</span>
+  setNumber: 2,                       <span class="c">// "Série 2"</span>
+  loadKg: carga === '' ? null : Number(carga.replace(',', '.')),
+})
+
+try {
+  await finalizarTreino(sessao.id, { notes: { [item.id]: 'Senti o ombro' } })
+  queryClient.invalidateQueries({ queryKey: ['plan', user.id] })
+  <span class="c">// abrir tela de treino concluído</span>
+} catch (e) {
+  if (e instanceof ApiError &amp;&amp; e.status === 422) abrirPopupNenhumaSerie()
+}</pre>
+
+<h3>Contador "0/5 exercícios concluídos · 0 séries"</h3>
+<p>Monte a partir das séries que o app já marcou (ou de <code>session.sets</code>): séries = total de séries concluídas; exercício concluído = item com todas as <code>item.sets</code> séries marcadas.</p>
+
+<div class="box key">
+  <h3>O treino em andamento fica no app</h3>
+  <p>Não existe rota para buscar um treino aberto. Se o app fechar no meio do treino, só o que estiver salvo no aparelho volta. O que a API já garante é que <b>repetir qualquer chamada não duplica nada</b>, então uma chamada que falhou por rede pode ser reenviada igual:</p>
+  <ul>
+    <li><code>POST /sessions</code> com o mesmo <code>id</code> devolve o mesmo treino.</li>
+    <li><code>PUT .../sets</code> repetido atualiza a mesma série. <code>DELETE</code> de série já desmarcada responde <span class="s ok">204</span>.</li>
+    <li>Finalizar de novo devolve o treino já finalizado. Sair de um treino já descartado responde <span class="s ok">204</span>.</li>
+  </ul>
+  <p>Mantenha a ordem: iniciar, séries, finalizar. A fila offline completa, com o banner "Modo Offline", é da Sprint 3.</p>
+</div>
+
+<h2>4. Referência das rotas do aluno</h2>
+<p class="muted">Base: <code>EXPO_PUBLIC_API_URL</code>. Todas exigem login; o cliente <code>api()</code> envia o token e o renova. Erros vêm em <code>{"error": "…"}</code> e podem ser exibidos como vieram. Exemplos tirados da API rodando com o seed.</p>
+
+<div class="route">
+  <div class="head"><span class="m get">GET</span><span class="path">/plans/student/:studentId</span><span class="who">o próprio aluno · instrutor com vínculo · admin</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">200</td><td><code>planSchema</code> da ficha ativa, exemplo abaixo (encurtado)</td></tr>
+      <tr><td class="s ok">200</td><td><code>null</code>: nenhuma ficha publicada</td></tr>
+      <tr><td class="s err">403</td><td>Sem vínculo ativo com este aluno <span class="muted">(id de outro aluno)</span></td></tr>
+    </table>
+<pre>{
+  "id": "cmu44towk0007i3fwb5i7ho5s",
+  "status": "ACTIVE",
+  "publishedAt": "2026-09-16T13:24:08.658Z",
+  "updatedAt": "2026-09-16T13:24:08.660Z",
+  "outdated": false,
+  "instructor": { "id": "cmtvibwqi0001i3x0yzuoa6gn", "name": "Carlos Instrutor" },
+  "todayDivisionId": "cmu44towk000fi3fwl6fdckrd",
+  "divisions": [
+    {
+      "id": "cmu44towk0008i3fw2puj9vq3",
+      "label": "A",
+      "title": "Peito &amp; Tríceps",
+      "order": 0,
+      "estimatedMinutes": 29,
+      "exercises": [
+        {
+          "id": "cmu44towk000ai3fwm5k47541",   <span class="c">← divisionExerciseId</span>
+          "order": 0,
+          "sets": 4,
+          "reps": "8-10",
+          "restSeconds": 90,
+          "targetLoadKg": 10,
+          "lastLoadKg": 40,
+          "exercise": {
+            "id": "cmtvibwrk0008i3x0qappqxq7",
+            "name": "Supino Reto com Barra",
+            "muscleGroup": "Peito",
+            "description": null,
+            "mediaUrl": null
+          }
+        }
+      ]
+    },
+    { "id": "cmu44towk000fi3fwl6fdckrd", "label": "B", "title": "Costas &amp; Bíceps", … }
+  ]
+}</pre>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/sessions</span><span class="who">aluno · <code>startSessionSchema</code></span></div>
+  <div class="body">
+<pre>{ "id": "a3f1c2d4-5b6e-4f70-8a91-b2c3d4e5f607", "divisionId": "cmu44towk0008i3fw2puj9vq3" }</pre>
+    <table>
+      <tr><td class="s ok">201</td><td><code>sessionSchema</code>: <code>{"id": "a3f1c2d4-…", "divisionId": "cmu44…", "startedAt": "2026-09-16T13:24:35.591Z", "finishedAt": null, "notes": {}, "sets": []}</code>. Mesmo <code>id</code> de novo: o mesmo treino.</td></tr>
+      <tr><td class="s err">404</td><td>Divisão não encontrada na sua ficha atual <span class="muted">(ficha trocada pelo instrutor: recarregue a ficha)</span></td></tr>
+      <tr><td class="s err">409</td><td>Identificador de treino já usado <span class="muted">(gere outro id)</span></td></tr>
+    </table>
+    <p><code>id</code> é opcional, de 8 a 64 caracteres. Sem ele a API gera um, mas aí o reenvio cria outro treino.</p>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m put">PUT</span><span class="path">/sessions/:id/sets</span><span class="who">aluno dono do treino · <code>setLogInputSchema</code></span></div>
+  <div class="body">
+<pre>{ "divisionExerciseId": "cmu44towk000ai3fwm5k47541", "setNumber": 1, "loadKg": 40 }</pre>
+    <table>
+      <tr><td class="s ok">200</td><td><code>setLogSchema</code>: <code>{"divisionExerciseId": "cmu44…", "setNumber": 1, "loadKg": 40, "doneAt": "2026-09-16T13:24:35.632Z"}</code></td></tr>
+      <tr><td class="s err">400</td><td>Este exercício tem 4 séries <span class="muted">(setNumber maior que <code>sets</code>)</span></td></tr>
+      <tr><td class="s err">400</td><td>Exercício não pertence a este treino <span class="muted">(item de outra divisão ou <code>exercise.id</code> no lugar do item)</span></td></tr>
+      <tr><td class="s err">409</td><td>Treino já finalizado</td></tr>
+    </table>
+    <p><code>loadKg</code>: número de 0 a 1000, ou <code>null</code> para peso corporal. Pode ser omitido (vira <code>null</code>).</p>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m del">DELETE</span><span class="path">/sessions/:id/sets/:divisionExerciseId/:setNumber</span><span class="who">aluno dono do treino</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">204</td><td>Série desmarcada, ou já não estava marcada</td></tr>
+      <tr><td class="s err">409</td><td>Treino já finalizado</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m post">POST</span><span class="path">/sessions/:id/finish</span><span class="who">aluno dono do treino · <code>finishSessionSchema</code></span></div>
+  <div class="body">
+<pre>{ "notes": { "cmu44towk000ai3fwm5k47541": "Senti o ombro" } }</pre>
+    <table>
+      <tr><td class="s ok">200</td><td><code>sessionSchema</code> com <code>finishedAt</code> preenchido, <code>notes</code> e todas as <code>sets</code>. Repetir devolve o mesmo.</td></tr>
+      <tr><td class="s warn">422</td><td>Nenhuma série concluída. Conclua ao menos uma série ou saia do treino.</td></tr>
+    </table>
+    <p><code>notes</code> é opcional: chave = id do item, valor até 500 caracteres. Envie <code>{}</code> sem notas.</p>
+  </div>
+</div>
+
+<div class="route">
+  <div class="head"><span class="m del">DELETE</span><span class="path">/sessions/:id</span><span class="who">aluno dono do treino</span></div>
+  <div class="body">
+    <table>
+      <tr><td class="s ok">204</td><td>Treino descartado, ou já descartado antes</td></tr>
+      <tr><td class="s err">409</td><td>Treino finalizado não pode ser descartado</td></tr>
+    </table>
+  </div>
+</div>
+<p class="muted">Em todas as rotas de <code>/sessions</code>: <span class="s err">403</span> "Sem permissão" para instrutor, admin ou treino de outro aluno; <span class="s err">404</span> "Treino não encontrado" para id inexistente, exceto em "Sair do treino", que responde <span class="s ok">204</span>.</p>
+
+<h2>5. Instrutor: montar a ficha (Sprint 2)</h2>
+<p>As telas do instrutor entram na Sprint 2, mas as rotas já funcionam e são usadas na demo da Sprint 1 via Insomnia/Bruno.</p>
+<ol class="steps">
+  <li><b>Criar Nova Ficha:</b> antes de abrir a tela, chame <code>GET /anamnesis/:studentId</code>. Se vier <code>null</code>, mostre o alerta de bloqueio (RN05). A API também recusa com <span class="s err">409</span>.</li>
+  <li><b>Biblioteca:</b> <code>GET /exercises</code> lista todos, ordenados por grupo e nome, para o seletor de exercícios.</li>
+  <li><b>Salvar:</b> <code>POST /plans</code> cria a ficha como rascunho (<code>DRAFT</code>). O aluno ainda não vê.</li>
+  <li><b>Ajustar o rascunho:</b> <code>PUT /plans/:id</code> substitui todas as divisões.</li>
+  <li><b>Publicar Ficha:</b> <code>POST /plans/:id/publish</code>. A ficha vira <code>ACTIVE</code> e a anterior do aluno passa a <code>EXPIRED</code>.</li>
+</ol>
+<pre><span class="c">// corpo de POST /plans (createPlanSchema). A ordem dos arrays é a ordem na tela.</span>
+{
+  "studentId": "cmtvibwqv0003i3x0micjs5wl",
+  "divisions": [
+    {
+      "label": "A",
+      "title": "Peito &amp; Tríceps",
+      "exercises": [
+        { "exerciseId": "cmtvibwrk0008i3x0qappqxq7", "sets": 4, "reps": "8-10", "restSeconds": 90, "targetLoadKg": 10 },
+        { "exerciseId": "cmtvibwrk000bi3x051slwa05", "sets": 3, "reps": "12" }
+      ]
+    }
+  ]
+}</pre>
+<p>Regras: 1 a 7 divisões; <code>label</code> até 3 caracteres; <code>title</code> até 60; ao menos 1 exercício por divisão; <code>sets</code> de 1 a 20; <code>reps</code> como <code>"12"</code> ou <code>"8-10"</code>; <code>restSeconds</code> de 0 a 600 (padrão 60); <code>targetLoadKg</code> opcional. Valide com <code>createPlanSchema</code> no app: o <span class="s err">400</span> traz o texto de cada campo em <code>issues[].message</code>, mas a mensagem em <code>error</code> é só "Dados inválidos".</p>
+
+<div class="box key">
+  <h3>Editar a ficha que o aluno já usa</h3>
+  <p><code>PUT</code> só vale para rascunho (<span class="s err">409</span> na ficha ativa), porque a ficha ativa guarda o histórico de cargas. Para "editar" a ativa: copie as divisões dela para o formulário, envie como <code>POST /plans</code> e publique. A anterior expira e o histórico fica.</p>
+<pre><span class="c">// Plan (resposta) → divisions do POST /plans. Serve também para "usar modelo".</span>
+const paraEdicao = (plan: Plan): DivisionInput[] =>
+  plan.divisions.map((d) => ({
+    label: d.label,
+    title: d.title,
+    exercises: d.exercises.map((e) => ({
+      exerciseId: e.exercise.id, sets: e.sets, reps: e.reps,
+      restSeconds: e.restSeconds, targetLoadKg: e.targetLoadKg,
+    })),
+  }))</pre>
+</div>
+
+<h3>Rotas do instrutor</h3>
+<table>
+  <tr><th>Rota</th><th>Quem</th><th>Respostas</th></tr>
+  <tr><td><code>GET /exercises</code></td><td>instrutor, admin</td><td><span class="s ok">200</span> <code>exerciseSchema[]</code></td></tr>
+  <tr><td><code>POST /plans</code></td><td>instrutor com vínculo</td><td><span class="s ok">201</span> <code>planSchema</code> em <code>DRAFT</code> · <span class="s err">409</span> "Criação bloqueada. O aluno ainda não preencheu a Anamnese inicial." · <span class="s err">400</span> "Exercício não encontrado na biblioteca" · <span class="s err">403</span> sem vínculo</td></tr>
+  <tr><td><code>GET /plans/:id</code></td><td>instrutor autor, admin</td><td><span class="s ok">200</span> <code>planSchema</code> em qualquer status · <span class="s err">404</span></td></tr>
+  <tr><td><code>PUT /plans/:id</code></td><td>instrutor autor com vínculo</td><td><span class="s ok">200</span> <code>planSchema</code> · <span class="s err">409</span> "Só rascunhos podem ser editados. Crie uma nova ficha a partir desta."</td></tr>
+  <tr><td><code>POST /plans/:id/publish</code></td><td>instrutor autor com vínculo</td><td><span class="s ok">200</span> <code>planSchema</code> em <code>ACTIVE</code> (repetir devolve o mesmo) · <span class="s err">409</span> "Ficha expirada não pode ser publicada"</td></tr>
+  <tr><td><code>GET /plans/templates</code></td><td>instrutor</td><td><span class="s ok">200</span> <code>templateSchema[]</code>, só os modelos dele</td></tr>
+  <tr><td><code>POST /plans/templates</code></td><td>instrutor</td><td><span class="s ok">201</span> <code>templateSchema</code>. Corpo: <code>{ name, divisions }</code>, com <code>divisions</code> igual ao do <code>POST /plans</code>.</td></tr>
+</table>
+<p><b>Usar um modelo:</b> copie <code>template.divisions</code> para o formulário e siga o fluxo de criar ficha. O modelo não fica ligado à ficha.</p>
+
+<div class="box">
+  <h3>Ainda não existe (avise o back se a tela precisar)</h3>
+  <ul>
+    <li>Lista de rascunhos do instrutor. Hoje o fluxo esperado é montar e publicar na mesma tela.</li>
+    <li>Lista de alunos do instrutor (<code>GET /links</code>), que chega com o módulo <code>links</code>.</li>
+    <li>Editar ou apagar modelo.</li>
+  </ul>
+</div>
+
+<h2>6. Checklist do app (aluno)</h2>
+<ul class="check">
+  <li>Home e Meus Treinos usam a mesma query <code>['plan', user.id]</code>.</li>
+  <li><code>null</code> mostra o estado vazio; erro de rede mostra o cache ou "Tentar de novo".</li>
+  <li>Selo "Hoje" e card do treino do dia a partir de <code>todayDivisionId</code>.</li>
+  <li>Campo de carga preenchido com <code>lastLoadKg ?? targetLoadKg</code>, aceitando vírgula e vazio (<code>null</code>).</li>
+  <li>GIF com placeholder quando <code>mediaUrl</code> é <code>null</code>; URL não é salva.</li>
+  <li>Id do treino gerado com <code>expo-crypto</code> e enviado no <code>POST /sessions</code>.</li>
+  <li>Séries registradas com <code>item.id</code>, nunca <code>item.exercise.id</code>.</li>
+  <li>Cronômetro de descanso com <code>restSeconds</code> depois de concluir a série.</li>
+  <li><span class="s warn">422</span> no finalizar abre o pop-up; "Sair do treino" chama <code>DELETE /sessions/:id</code>.</li>
+  <li>Depois de finalizar, invalidar a ficha para o treino do dia avançar.</li>
+</ul>
+
+<h2>7. Rodando local</h2>
+<ul>
+  <li><b>Depois do pull:</b> <code>npm install</code>, <code>npm run db:migrate</code> (migração nova de séries) e <code>npm run db:seed</code>. Terminais: <code>npm run dev:api</code> e <code>npm run dev:mobile</code>.</li>
+  <li><b>Usuários do seed</b>, senha <code>Senha123</code>:
+    <ul>
+      <li><code>maria@email.com</code>: aluna com anamnese e ficha ativa A (Peito &amp; Tríceps), B (Costas &amp; Bíceps) e C (Pernas). Use para Home, Meus Treinos e execução.</li>
+      <li><code>joao@email.com</code>: aluno sem anamnese e sem ficha. Use para o primeiro acesso e o estado vazio.</li>
+      <li><code>instrutor@espacofit.com</code>: tem vínculo com os dois.</li>
+    </ul>
+  </li>
+  <li><b>Voltar a Maria para o Treino A:</b> apague as linhas dela em <code>WorkoutSession</code> com <code>npm -w apps/api run prisma:studio</code>.</li>
+</ul>
+
+</body>
+</html>
