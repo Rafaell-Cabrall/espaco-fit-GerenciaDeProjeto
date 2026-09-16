@@ -2,6 +2,7 @@
 
 Guia de autenticação para o front, com fluxos por tela e exemplos: [autenticacao.pdf](autenticacao.pdf) (fonte em [autenticacao.html](autenticacao.html)).
 Guia da anamnese do primeiro acesso: [anamnese.pdf](anamnese.pdf) (fonte em [anamnese.html](anamnese.html)).
+Guia da ficha e do treino (Home, Meus Treinos, execução e montagem pelo instrutor): [treino.pdf](treino.pdf) (fonte em [treino.html](treino.html)).
 
 Schemas em [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts). O app importa de `@espacofit/shared` e não redeclara tipos.
 Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Documento de Requisitos v3. As telas do instrutor ainda não existem: as rotas de escrita da ficha seguem o RF06/RF07 e são usadas via Insomnia/Bruno na demo.
