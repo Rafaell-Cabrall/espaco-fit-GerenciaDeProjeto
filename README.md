@@ -35,14 +35,14 @@ npm run dev:mobile   # QR code do Expo
 |---|---|
 | `npm run lint` / `npm run lint:fix` | Biome (lint + formatação) em todo o repo |
 | `npm run typecheck` | `tsc` nos três pacotes |
-| `npm -w apps/api test` | testes da API (`node --test`, precisa do Postgres e do Redis do compose) |
+| `npm -w apps/api test` | testes da API (`node --test`, precisa do Postgres, Redis e MinIO do compose) |
 | `npm -w apps/api run prisma:studio` | UI do banco |
 | `npm -w apps/api run prisma:migrate -- --name <nome>` | nova migração após editar `schema.prisma` |
 
 ## Fluxo de trabalho
 
 - `main` protegida; trabalhe em `feat/<ru>-<descricao>` (ex.: `feat/ru01-fichas`) e abra PR.
-- CI roda lint, typecheck e testes da API. Squash merge.
+- Sem CI: antes de abrir o PR, rode `npm run lint`, `npm run typecheck` e, se tocou no back, os testes da API. Squash merge.
 - Contrato novo/alterado (request/response) entra em `packages/shared` antes do front e do back usarem.
 - Módulos da API vivem em `apps/api/src/modules/<nome>/{router,service}.ts`. Os que ainda respondem 501 estão marcados com `TODO(sprint N)`.
 - No app, `app/` só tem rotas finas; a tela fica em `apps/mobile/src/screens/<Nome>/`. Regras em [apps/mobile/src/README.md](apps/mobile/src/README.md).
