@@ -63,8 +63,8 @@
 <div class="cover">
   <div class="kicker">Espaço Fit · API</div>
   <h1>Ficha e treino: guia para o front</h1>
-  <div class="meta">Home, Meus Treinos e execução do treino (aluno) · Montagem da ficha (instrutor, Sprint 2) · Versão 1 · 16/09/2026<br>
-  Vale a partir do merge do PR #7 na <code>main</code>. Rode <code>npm run db:migrate</code> e <code>npm run db:seed</code> depois do pull.</div>
+  <div class="meta">Home, Meus Treinos e execução do treino (aluno) · Montagem da ficha (instrutor, Sprint 2) · Versão 2 · 16/09/2026<br>
+  Vale a partir do merge do PR #11 na <code>main</code>. Rode <code>npm run db:migrate</code> e <code>npm run db:seed</code> depois do pull (o seed envia os GIFs ao MinIO).</div>
 </div>
 
 <div class="box key">
@@ -74,6 +74,8 @@
     <li><b>Executar o treino</b> usa 5 rotas de <code>/sessions</code>: iniciar, concluir série, desmarcar série, finalizar e sair do treino.</li>
     <li><b>O id do item da ficha</b> (<code>exercises[i].id</code>) é o que vai ao registrar série. O <code>exercises[i].exercise.id</code> é o do exercício na biblioteca e não serve para isso.</li>
     <li><b>Nada é calculado no app:</b> treino do dia, "~29 min" e carga sugerida vêm prontos. Tipos vêm de <code>@espacofit/shared</code>.</li>
+    <li><b>Os exercícios do seed já têm GIF</b> em <code>exercise.mediaUrl</code>. Use <code>expo-image</code> para ele animar (seção 2).</li>
+    <li><b>Chamadas</b> usam o cliente <code>api()</code> de <code>src/api/client.ts</code>, que envia o token, renova a sessão e lança <code>ApiError</code>. O aluno logado vem de <code>useAuth().user</code>.</li>
   </ul>
 </div>
 
@@ -88,7 +90,7 @@
   <tr><td>Finalizar Treino</td><td><code>POST /sessions/:id/finish</code></td></tr>
   <tr><td>Pop-up "nenhuma série" → Sair do treino</td><td><code>DELETE /sessions/:id</code></td></tr>
 </table>
-<p>Só o aluno logado usa essas rotas, sempre com o próprio <code>user.id</code>. O instrutor lê a mesma ficha pelo <code>GET</code> quando tem vínculo com o aluno.</p>
+<p>Só o aluno logado usa essas rotas, sempre com o próprio <code>user.id</code> (de <code>useAuth()</code>). O instrutor lê a mesma ficha pelo <code>GET</code> quando tem vínculo com o aluno.</p>
 
 <h2>2. Home e Meus Treinos</h2>
 <pre><span class="c">// api/plans.ts — null = o instrutor ainda não publicou a ficha</span>
@@ -120,10 +122,34 @@ export const usePlan = (studentId: string) =>
   <h3>Três cuidados</h3>
   <ul>
     <li><b>Erro de rede não é <code>null</code>.</b> <code>null</code> vem só da API e abre o estado vazio ("ficha ainda não disponível", texto do design). Sem internet, mostre a ficha do cache ou "Tentar de novo".</li>
-    <li><b><code>mediaUrl</code> vale 1 hora.</b> Não salve a URL. Se o GIF falhar ao carregar, refaça a consulta da ficha. Hoje todos vêm <code>null</code> porque os GIFs ainda não foram enviados: use um placeholder.</li>
+    <li><b><code>mediaUrl</code> vale 1 hora.</b> Não salve a URL. Se o GIF falhar ao carregar, refaça a consulta da ficha.</li>
     <li><b>Treino do dia só avança depois de finalizar.</b> Ao receber <span class="s ok">200</span> no finish, invalide <code>['plan', studentId]</code> para a Home mostrar a próxima divisão e as cargas novas.</li>
   </ul>
 </div>
+
+<h3>GIF do exercício</h3>
+<p>Miniatura no card do exercício e demonstração em tela cheia ao tocar nela. Os GIFs do seed têm <b>480×320 (3:2)</b> e são provisórios: fotos do free-exercise-db, até a academia gravar os vídeos. Por isso, não fixe a proporção no layout.</p>
+<pre><span class="c">// npx expo install expo-image — o Image do React Native não anima GIF no Android</span>
+import { Image } from 'expo-image'
+
+const [recarregou, setRecarregou] = useState(false)
+
+&lt;Image
+  source={item.exercise.mediaUrl ? { uri: item.exercise.mediaUrl } : placeholder}
+  contentFit="contain"               <span class="c">// "cover" corta as laterais no quadro quadrado do Figma</span>
+  placeholder={placeholder}          <span class="c">// enquanto carrega</span>
+  onError={() => {
+    if (recarregou) return           <span class="c">// URL vencida: busca a ficha de novo uma vez só</span>
+    setRecarregou(true)
+    queryClient.invalidateQueries({ queryKey: ['plan', user.id] })
+  }}
+  style={{ width: '100%', aspectRatio: 1 }}
+/&gt;</pre>
+<ul>
+  <li><code>mediaUrl</code> pode vir <code>null</code>: exercício cadastrado sem mídia. Mostre o placeholder, sem erro.</li>
+  <li>No <code>onError</code>, invalide a ficha uma vez só (a URL pode ter vencido). Se falhar de novo, fique no placeholder, sem entrar em loop.</li>
+  <li><b>No celular:</b> a URL traz o host de <code>S3_ENDPOINT</code>. Com <code>localhost</code>, o GIF não abre no aparelho. Veja a seção 7.</li>
+</ul>
 
 <h2 class="page">3. Execução do treino</h2>
 <ol class="steps">
@@ -226,7 +252,7 @@ try {
             "name": "Supino Reto com Barra",
             "muscleGroup": "Peito",
             "description": null,
-            "mediaUrl": null
+            "mediaUrl": "http://localhost:9000/media/exercises/supino-reto-com-barra.gif?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;…&amp;X-Amz-Signature=e7b6…"
           }
         }
       ]
@@ -298,7 +324,7 @@ try {
 <p class="muted">Em todas as rotas de <code>/sessions</code>: <span class="s err">403</span> "Sem permissão" para instrutor, admin ou treino de outro aluno; <span class="s err">404</span> "Treino não encontrado" para id inexistente, exceto em "Sair do treino", que responde <span class="s ok">204</span>.</p>
 
 <h2>5. Instrutor: montar a ficha (Sprint 2)</h2>
-<p>As telas do instrutor entram na Sprint 2, mas as rotas já funcionam e são usadas na demo da Sprint 1 via Insomnia/Bruno.</p>
+<p>As telas do instrutor entram na Sprint 2, mas as rotas já funcionam e são usadas na demo da Sprint 1 pela coleção do Bruno em <code>docs/api/bruno/</code>.</p>
 <ol class="steps">
   <li><b>Criar Nova Ficha:</b> antes de abrir a tela, chame <code>GET /anamnesis/:studentId</code>. Se vier <code>null</code>, mostre o alerta de bloqueio (RN05). A API também recusa com <span class="s err">409</span>.</li>
   <li><b>Biblioteca:</b> <code>GET /exercises</code> lista todos, ordenados por grupo e nome, para o seletor de exercícios.</li>
@@ -340,6 +366,7 @@ const paraEdicao = (plan: Plan): DivisionInput[] =>
 <h3>Rotas do instrutor</h3>
 <table>
   <tr><th>Rota</th><th>Quem</th><th>Respostas</th></tr>
+  <tr><td><code>GET /links</code></td><td>instrutor, admin</td><td><span class="s ok">200</span> <code>linkSchema[]</code> dos vínculos ativos, por nome do aluno. O instrutor recebe só os alunos dele: é a lista de alunos.</td></tr>
   <tr><td><code>GET /exercises</code></td><td>instrutor, admin</td><td><span class="s ok">200</span> <code>exerciseSchema[]</code></td></tr>
   <tr><td><code>POST /plans</code></td><td>instrutor com vínculo</td><td><span class="s ok">201</span> <code>planSchema</code> em <code>DRAFT</code> · <span class="s err">409</span> "Criação bloqueada. O aluno ainda não preencheu a Anamnese inicial." · <span class="s err">400</span> "Exercício não encontrado na biblioteca" · <span class="s err">403</span> sem vínculo</td></tr>
   <tr><td><code>GET /plans/:id</code></td><td>instrutor autor, admin</td><td><span class="s ok">200</span> <code>planSchema</code> em qualquer status · <span class="s err">404</span></td></tr>
@@ -354,7 +381,6 @@ const paraEdicao = (plan: Plan): DivisionInput[] =>
   <h3>Ainda não existe (avise o back se a tela precisar)</h3>
   <ul>
     <li>Lista de rascunhos do instrutor. Hoje o fluxo esperado é montar e publicar na mesma tela.</li>
-    <li>Lista de alunos do instrutor (<code>GET /links</code>), que chega com o módulo <code>links</code>.</li>
     <li>Editar ou apagar modelo.</li>
   </ul>
 </div>
@@ -365,7 +391,7 @@ const paraEdicao = (plan: Plan): DivisionInput[] =>
   <li><code>null</code> mostra o estado vazio; erro de rede mostra o cache ou "Tentar de novo".</li>
   <li>Selo "Hoje" e card do treino do dia a partir de <code>todayDivisionId</code>.</li>
   <li>Campo de carga preenchido com <code>lastLoadKg ?? targetLoadKg</code>, aceitando vírgula e vazio (<code>null</code>).</li>
-  <li>GIF com placeholder quando <code>mediaUrl</code> é <code>null</code>; URL não é salva.</li>
+  <li>GIF com <code>expo-image</code>, placeholder quando <code>mediaUrl</code> é <code>null</code> ou falha; URL não é salva.</li>
   <li>Id do treino gerado com <code>expo-crypto</code> e enviado no <code>POST /sessions</code>.</li>
   <li>Séries registradas com <code>item.id</code>, nunca <code>item.exercise.id</code>.</li>
   <li>Cronômetro de descanso com <code>restSeconds</code> depois de concluir a série.</li>
@@ -383,6 +409,7 @@ const paraEdicao = (plan: Plan): DivisionInput[] =>
       <li><code>instrutor@espacofit.com</code>: tem vínculo com os dois.</li>
     </ul>
   </li>
+  <li><b>GIFs no celular:</b> no <code>.env</code>, troque <code>S3_ENDPOINT</code> pelo IP da máquina, o mesmo do <code>EXPO_PUBLIC_API_URL</code> (ex.: <code>http://192.168.0.10:9000</code>), e reinicie a API. O MinIO sobe com <code>docker compose up -d</code>. Se o seed rodou com o MinIO fora do ar, rode <code>npm run db:seed</code> de novo.</li>
   <li><b>Voltar a Maria para o Treino A:</b> apague as linhas dela em <code>WorkoutSession</code> com <code>npm -w apps/api run prisma:studio</code>.</li>
 </ul>
 
