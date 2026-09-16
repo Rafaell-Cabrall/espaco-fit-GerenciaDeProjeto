@@ -4,6 +4,8 @@ Guia de autenticação para o front, com fluxos por tela e exemplos: [autenticac
 Guia da anamnese do primeiro acesso: [anamnese.pdf](anamnese.pdf) (fonte em [anamnese.html](anamnese.html)).
 Guia da ficha e do treino (Home, Meus Treinos, execução e montagem pelo instrutor): [treino.pdf](treino.pdf) (fonte em [treino.html](treino.html)).
 
+Coleção do [Bruno](https://www.usebruno.com/) em [`bruno/`](bruno/), para o instrutor montar a ficha pela API na demo. No Bruno: *Open Collection* nessa pasta, ambiente `local` e, se preciso, trocar `studentEmail` pelo e-mail do aluno cadastrado no app (e `baseUrl` pelo IP da máquina). Rodar as requisições na ordem: login admin e instrutor, buscar aluno, vincular, conferir anamnese, biblioteca, criar e publicar a ficha, ver a ficha do aluno. Os ids e tokens passam de uma para a outra sozinhos. Para validar sem abrir o Bruno: `npx @usebruno/cli run --env local` dentro de `bruno/`.
+
 Schemas em [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts). O app importa de `@espacofit/shared` e não redeclara tipos.
 Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Documento de Requisitos v3. As telas do instrutor ainda não existem: as rotas de escrita da ficha seguem o RF06/RF07 e são usadas via Insomnia/Bruno na demo.
 

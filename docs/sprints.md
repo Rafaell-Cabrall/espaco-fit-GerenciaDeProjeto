@@ -34,7 +34,7 @@ Demo: aluno se cadastra, aceita o termo LGPD, responde a anamnese, abre a ficha 
 - [x] `sessions`: iniciar sessão, registrar série com carga (só aluno, RN02), finalizar, descartar sem série (RN03)
 - [x] Treino do dia: rotação A→B→C com escolha manual (RN08)
 - [x] `users` e `links`: criar usuários e vincular aluno ↔ instrutor (usado só via API/seed nesta sprint)
-- [ ] Coleção do Insomnia/Bruno em `docs/api/` para o instrutor "montar ficha" na demo
+- [x] Coleção do Bruno em [`docs/api/bruno/`](api/bruno/) para o instrutor "montar ficha" na demo
 
 **Front (2 pessoas, só telas do aluno)**
 - [ ] Design system a partir do Figma do aluno: tokens, Button, Input, Card, Text, Tabs

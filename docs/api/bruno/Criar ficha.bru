@@ -1,0 +1,58 @@
+meta {
+  name: Criar ficha
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/plans
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{instructorToken}}
+}
+
+body:json {
+  {
+    "studentId": "{{studentId}}",
+    "divisions": [
+      {
+        "label": "A",
+        "title": "Peito & Tríceps",
+        "exercises": [
+          { "exerciseId": "{{ex_Supino_Reto_com_Barra}}", "sets": 4, "reps": "8-10", "restSeconds": 90, "targetLoadKg": 30 },
+          { "exerciseId": "{{ex_Supino_Inclinado_com_Halter}}", "sets": 3, "reps": "10-12", "restSeconds": 60, "targetLoadKg": 12 },
+          { "exerciseId": "{{ex_Triceps_Pulley}}", "sets": 3, "reps": "12", "restSeconds": 60, "targetLoadKg": 20 }
+        ]
+      },
+      {
+        "label": "B",
+        "title": "Costas & Bíceps",
+        "exercises": [
+          { "exerciseId": "{{ex_Barra_Fixa_Pegada_Supinada}}", "sets": 3, "reps": "6-8", "restSeconds": 90, "targetLoadKg": null },
+          { "exerciseId": "{{ex_Remada_Curvada_com_Barra}}", "sets": 4, "reps": "8-10", "restSeconds": 90, "targetLoadKg": 25 },
+          { "exerciseId": "{{ex_Rosca_Direta_com_Barra}}", "sets": 3, "reps": "10-12", "restSeconds": 60, "targetLoadKg": 15 }
+        ]
+      },
+      {
+        "label": "C",
+        "title": "Pernas",
+        "exercises": [
+          { "exerciseId": "{{ex_Agachamento_Livre}}", "sets": 4, "reps": "8-10", "restSeconds": 120, "targetLoadKg": 40 },
+          { "exerciseId": "{{ex_Leg_Press_45}}", "sets": 3, "reps": "10-12", "restSeconds": 90, "targetLoadKg": 80 },
+          { "exerciseId": "{{ex_Panturrilha_em_Pe}}", "sets": 3, "reps": "15", "restSeconds": 45, "targetLoadKg": null }
+        ]
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("planId", res.body.id);
+}
