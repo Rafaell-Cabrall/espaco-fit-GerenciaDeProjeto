@@ -42,10 +42,10 @@ Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Document
 | `DELETE /sessions/:id/sets/:divisionExerciseId/:setNumber` | aluno dono | — | `204` | desmarcar série |
 | `POST /sessions/:id/finish` | aluno dono | `finishSessionSchema` | `sessionSchema`; `422` sem série; repetir devolve o mesmo treino | Finalizar Treino |
 | `DELETE /sessions/:id` | aluno dono | — | `204` (também se já descartado); `409` se já finalizada | Sair do treino |
-| `POST /users` | admin | `createUserSchema` | `201` `userSchema` | — |
-| `GET /users?role=` | admin | — | `userSchema[]` | — |
-| `POST /links` | admin | `createLinkSchema` | `201` `linkSchema`; `404` instrutor inativo | — |
-| `GET /links` | admin, instrutor | — | `linkSchema[]` ativos | lista de alunos (Sprint 2) |
+| `POST /users` | admin | `createUserSchema` | `201` `userSchema`; `409` e-mail em uso | — |
+| `GET /users?role=` | admin | — | `userSchema[]` por nome; `role` opcional, `400` se inválido | — |
+| `POST /links` | admin | `createLinkSchema` | `201` `linkSchema`; encerra o vínculo ativo anterior, mesmo instrutor devolve o atual; `404` instrutor inativo ou aluno inexistente | — |
+| `GET /links` | admin, instrutor | — | `linkSchema[]` ativos, por nome do aluno; instrutor vê só os seus | lista de alunos (Sprint 2) |
 
 ## Regras que a API calcula
 
