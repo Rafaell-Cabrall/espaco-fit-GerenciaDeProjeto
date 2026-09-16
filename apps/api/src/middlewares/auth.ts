@@ -35,16 +35,15 @@ export function requireRole(...roles: Role[]) {
   }
 }
 
+export const hasActiveLink = async (studentId: string, instructorId: string) =>
+  !!(await prisma.link.findFirst({ where: { studentId, instructorId, status: 'ACTIVE' } }))
+
 // RN09/RNF04: instrutor só acessa aluno com vínculo ATIVO. Admin passa. Aluno só acessa a si mesmo.
+// studentId vem da rota ou, em criação (POST /plans), do body já validado.
 export async function requireLink(req: Request, _res: Response, next: NextFunction) {
-  const studentId = req.params.studentId as string
+  const studentId = (req.params.studentId ?? req.body?.studentId) as string
   const { id, role } = req.user
   if (role === 'ADMIN' || (role === 'ALUNO' && id === studentId)) return next()
-  if (role === 'INSTRUTOR') {
-    const link = await prisma.link.findFirst({
-      where: { studentId, instructorId: id, status: 'ACTIVE' },
-    })
-    if (link) return next()
-  }
+  if (role === 'INSTRUTOR' && (await hasActiveLink(studentId, id))) return next()
   throw new HttpError(403, 'Sem vínculo ativo com este aluno')
 }
