@@ -35,5 +35,9 @@ jobs:
       - run: cp .env.example .env
       - run: npm run lint
       - run: npm run typecheck
+      # MinIO não cabe em `services` (exige o comando `server`); mesmo usuário e bucket do docker-compose
+      - run: |
+          docker run -d -p 9000:9000 -e MINIO_ROOT_USER=espacofit -e MINIO_ROOT_PASSWORD=espacofit123 minio/minio server /data
+          docker run --rm --network host --entrypoint sh minio/mc -c "until mc alias set local http://localhost:9000 espacofit espacofit123; do sleep 1; done; mc mb -p local/media"
       - run: npm -w apps/api run prisma:deploy
       - run: npm -w apps/api test
