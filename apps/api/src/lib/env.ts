@@ -7,6 +7,7 @@ const schema = z.object({
   PORT: z.coerce.number().default(3000),
   S3_ENDPOINT: z.string().default('http://localhost:9000'),
   S3_BUCKET: z.string().default('media'),
+  S3_REGION: z.string().default('us-east-1'), // MinIO aceita qualquer; S3 real exige a do bucket
   S3_ACCESS_KEY: z.string().default('espacofit'),
   S3_SECRET_KEY: z.string().default('espacofit123'),
   // Sem SMTP_HOST o worker só imprime o e-mail no console (dev)
