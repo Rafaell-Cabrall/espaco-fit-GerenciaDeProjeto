@@ -1,4 +1,5 @@
 // Rótulo + input do Figma. `secure` liga o botão de mostrar/ocultar senha.
+// Com `multiline`, a caixa cresce em vez de manter a altura de uma linha.
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native'
 import { tokens } from '@/design-system/tokens'
@@ -10,7 +11,7 @@ export function Field({ label, secure, style, ...input }: Props) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.box}>
+      <View style={[styles.box, input.multiline && styles.boxMultiline]}>
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={tokens.colors.textMuted}
@@ -18,7 +19,7 @@ export function Field({ label, secure, style, ...input }: Props) {
           autoCapitalize={secure ? 'none' : undefined}
           autoCorrect={!secure}
           secureTextEntry={secure && hidden}
-          style={[styles.input, style]}
+          style={[styles.input, input.multiline && styles.inputMultiline, style]}
           {...input}
         />
         {secure && (
@@ -45,6 +46,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  boxMultiline: { height: 'auto', minHeight: 104, alignItems: 'flex-start', paddingVertical: 14 },
   input: {
     flex: 1,
     height: '100%',
@@ -52,5 +54,6 @@ const styles = StyleSheet.create({
     fontFamily: tokens.fonts.regular,
     fontSize: 15,
   },
+  inputMultiline: { height: 'auto', textAlignVertical: 'top' },
   toggle: { color: tokens.colors.textSecondary, fontFamily: tokens.fonts.regular, fontSize: 13 },
 })

@@ -2,10 +2,11 @@ import { authResponseSchema, registerSchema } from '@espacofit/shared'
 import { useMutation } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { api } from '@/api/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/Button'
+import { Checkbox } from '@/components/Checkbox'
 import { Field } from '@/components/Field'
 import { PasswordRules } from '@/components/PasswordRules'
 import { styles } from './styles'
@@ -95,22 +96,19 @@ export function CadastroScreen() {
         autoComplete="new-password"
         textContentType="newPassword"
       />
-      <Pressable
-        style={styles.terms}
-        onPress={() => setAccepted(!accepted)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: accepted }}
-      >
-        <View style={[styles.checkbox, accepted && styles.checkboxOn]}>
-          {accepted && <Text style={styles.check}>✓</Text>}
-        </View>
-        {/* ponytail: Termos e Política sem link até existir o texto jurídico */}
-        <Text style={styles.termsText}>
-          Li e aceito os <Text style={styles.link}>Termos de Uso</Text> e a{' '}
-          <Text style={styles.link}>Política de Privacidade</Text>, incluindo o tratamento de dados
-          sensíveis de saúde conforme a <Text style={styles.bold}>LGPD</Text>.
-        </Text>
-      </Pressable>
+      {/* ponytail: Termos e Política sem link até existir o texto jurídico */}
+      <Checkbox
+        checked={accepted}
+        onChange={setAccepted}
+        accessibilityLabel="Li e aceito os termos de uso e a política de privacidade"
+        label={
+          <>
+            Li e aceito os <Text style={styles.link}>Termos de Uso</Text> e a{' '}
+            <Text style={styles.link}>Política de Privacidade</Text>, incluindo o tratamento de
+            dados sensíveis de saúde conforme a <Text style={styles.bold}>LGPD</Text>.
+          </>
+        }
+      />
     </AuthLayout>
   )
 }
