@@ -1,4 +1,5 @@
-// Moldura das telas de cadastro e recuperação: voltar, título, subtítulo, campos, erro e rodapé.
+// Moldura das telas de formulário (cadastro, recuperação, anamnese): voltar, título, subtítulo,
+// campos, erro e rodapé.
 // O rodapé (botão) fica centralizado no espaço que sobra, como no Figma.
 import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
@@ -18,12 +19,21 @@ type Props = {
   title: string
   subtitle?: ReactNode
   inlineBack?: boolean // "Criar conta" traz o voltar ao lado do título
+  hideBack?: boolean // anamnese do primeiro acesso: obrigatória, não tem para onde voltar
   error?: string
   children: ReactNode
   footer: ReactNode
 }
 
-export function AuthLayout({ title, subtitle, inlineBack, error, children, footer }: Props) {
+export function AuthLayout({
+  title,
+  subtitle,
+  inlineBack,
+  hideBack,
+  error,
+  children,
+  footer,
+}: Props) {
   const router = useRouter()
   return (
     <SafeAreaView style={styles.safe}>
@@ -33,15 +43,17 @@ export function AuthLayout({ title, subtitle, inlineBack, error, children, foote
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={inlineBack ? styles.headerRow : styles.header}>
-            <Pressable
-              onPress={router.back}
-              style={styles.back}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
-            >
-              <Text style={styles.backIcon}>←</Text>
-            </Pressable>
+            {!hideBack && (
+              <Pressable
+                onPress={router.back}
+                style={styles.back}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Voltar"
+              >
+                <Text style={styles.backIcon}>←</Text>
+              </Pressable>
+            )}
             <View style={styles.flex}>
               <Text style={styles.title} accessibilityRole="header">
                 {title}

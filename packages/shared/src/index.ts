@@ -97,20 +97,32 @@ export type Link = z.infer<typeof linkSchema>
 
 // ---------- anamnesis (formulário do primeiro acesso; tela Evolução > Anamnese) ----------
 
-// Valores são o texto exibido no protótipo: o app mostra direto, sem tabela de rótulos
-export const FitnessLevel = z.enum(['Iniciante', 'Intermediário', 'Avançado'])
+// Valores são o texto exibido no protótipo: o app mostra direto, sem tabela de rótulos.
+// A mensagem cobre o campo não respondido no formulário do primeiro acesso.
+export const FitnessLevel = z.enum(['Iniciante', 'Intermediário', 'Avançado'], {
+  error: 'Escolha seu nível de condicionamento',
+})
 export type FitnessLevel = z.infer<typeof FitnessLevel>
-export const Goal = z.enum(['Hipertrofia', 'Emagrecimento', 'Condicionamento', 'Saúde e bem-estar'])
+export const Goal = z.enum(
+  ['Hipertrofia', 'Emagrecimento', 'Condicionamento', 'Saúde e bem-estar'],
+  {
+    error: 'Escolha seu objetivo principal',
+  },
+)
 export type Goal = z.infer<typeof Goal>
-export const WeeklyFrequency = z.enum(['1 - 2 dias', '3 dias', '4 - 5 dias', '6 - 7 dias'])
+export const WeeklyFrequency = z.enum(['1 - 2 dias', '3 dias', '4 - 5 dias', '6 - 7 dias'], {
+  error: 'Escolha sua frequência semanal',
+})
 export type WeeklyFrequency = z.infer<typeof WeeklyFrequency>
 
 const anamnesisAnswers = z.object({
-  injuries: z.string().trim().max(500).default(''), // "Lesões ou restrições"; vazio = "Sem restrições"
+  // "Lesões ou restrições"; vazio = "Sem restrições"
+  injuries: z.string().trim().max(500, 'Use no máximo 500 caracteres').default(''),
   fitnessLevel: FitnessLevel, // "Nível de condicionamento"
   goal: Goal, // "Objetivo principal"
   weeklyFrequency: WeeklyFrequency, // "Frequência semanal"
-  conditions: z.string().trim().max(500).default(''), // "Doenças preexistentes"; vazio = "Nenhuma"
+  // "Doenças preexistentes"; vazio = "Nenhuma"
+  conditions: z.string().trim().max(500, 'Use no máximo 500 caracteres').default(''),
 })
 
 // PUT /anamnesis/:studentId, só o próprio aluno. consent = opt-in do dado de saúde (RN09).

@@ -4,10 +4,10 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "dotenv -e ../../.env -- expo start",
+    "android": "npm run start -- --android",
+    "ios": "npm run start -- --ios",
+    "web": "npm run start -- --web",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "dotenv-cli": "^10.0.0",
     "typescript": "~6.0.3"
   }
 }
