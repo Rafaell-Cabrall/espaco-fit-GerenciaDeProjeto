@@ -188,6 +188,9 @@ model SetLog {
   loadKg             Decimal?         @db.Decimal(6, 2)
   reps               Int?
   doneAt             DateTime         @default(now())
+
+  // uma linha por série: reenvio da fila offline atualiza em vez de duplicar
+  @@unique([sessionId, divisionExerciseId, setNumber])
 }
 
 // tela Evolução > Resumo (peso, gordura, músculo; IMC calculado)

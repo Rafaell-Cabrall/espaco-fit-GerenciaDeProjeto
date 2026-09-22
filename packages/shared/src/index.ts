@@ -16,25 +16,27 @@ const loadKg = z.number().min(0).max(1000).nullable()
 
 // ---------- auth ----------
 
-// Regra da tela "Criar nova senha": mínimo 8, uma maiúscula, um número
-export const password = z
-  .string()
-  .min(8, 'Mínimo 8 caracteres')
-  .regex(/[A-Z]/, 'Uma letra maiúscula')
-  .regex(/[0-9]/, 'Um número')
+// Regras da tela "Criar nova senha", na ordem do checklist. O app mostra cada uma com ✓.
+export const passwordRules = [
+  ['Mínimo 8 caracteres', /^[\s\S]{8,}$/],
+  ['Uma letra maiúscula', /[A-Z]/],
+  ['Um número', /[0-9]/],
+] as const
+export const password = passwordRules.reduce((s, [msg, re]) => s.regex(re, msg), z.string())
 
+const email = z.email('E-mail inválido').toLowerCase()
 const resetCode = z.string().regex(/^\d{6}$/, 'Código de 6 dígitos')
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(2),
-  email: z.email().toLowerCase(),
+  name: z.string().trim().min(2, 'Informe seu nome completo'),
+  email,
   password,
   acceptedTerms: z.literal(true, { error: 'Aceite os termos para continuar' }),
 })
 export type RegisterInput = z.infer<typeof registerSchema>
 
 export const loginSchema = z.object({
-  email: z.email().toLowerCase(),
+  email,
   password: z.string().min(1),
 })
 export type LoginInput = z.infer<typeof loginSchema>
@@ -42,9 +44,9 @@ export type LoginInput = z.infer<typeof loginSchema>
 export const refreshSchema = z.object({ refreshToken: z.string().min(1) })
 
 // "Enviar Código" e "Reenviar código" usam a mesma rota
-export const forgotPasswordSchema = z.object({ email: z.email().toLowerCase() })
+export const forgotPasswordSchema = z.object({ email })
 // Tela "Verifique seu e-mail": confere o código antes de abrir "Criar nova senha"
-export const verifyResetCodeSchema = z.object({ email: z.email().toLowerCase(), code: resetCode })
+export const verifyResetCodeSchema = z.object({ email, code: resetCode })
 export type VerifyResetCodeInput = z.infer<typeof verifyResetCodeSchema>
 export const resetPasswordSchema = verifyResetCodeSchema.extend({ password })
 
@@ -69,7 +71,7 @@ const userRef = userSchema.pick({ id: true, name: true })
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(2),
-  email: z.email().toLowerCase(),
+  email,
   password,
   role: Role,
 })
@@ -95,20 +97,32 @@ export type Link = z.infer<typeof linkSchema>
 
 // ---------- anamnesis (formulário do primeiro acesso; tela Evolução > Anamnese) ----------
 
-// Valores são o texto exibido no protótipo: o app mostra direto, sem tabela de rótulos
-export const FitnessLevel = z.enum(['Iniciante', 'Intermediário', 'Avançado'])
+// Valores são o texto exibido no protótipo: o app mostra direto, sem tabela de rótulos.
+// A mensagem cobre o campo não respondido no formulário do primeiro acesso.
+export const FitnessLevel = z.enum(['Iniciante', 'Intermediário', 'Avançado'], {
+  error: 'Escolha seu nível de condicionamento',
+})
 export type FitnessLevel = z.infer<typeof FitnessLevel>
-export const Goal = z.enum(['Hipertrofia', 'Emagrecimento', 'Condicionamento', 'Saúde e bem-estar'])
+export const Goal = z.enum(
+  ['Hipertrofia', 'Emagrecimento', 'Condicionamento', 'Saúde e bem-estar'],
+  {
+    error: 'Escolha seu objetivo principal',
+  },
+)
 export type Goal = z.infer<typeof Goal>
-export const WeeklyFrequency = z.enum(['1 - 2 dias', '3 dias', '4 - 5 dias', '6 - 7 dias'])
+export const WeeklyFrequency = z.enum(['1 - 2 dias', '3 dias', '4 - 5 dias', '6 - 7 dias'], {
+  error: 'Escolha sua frequência semanal',
+})
 export type WeeklyFrequency = z.infer<typeof WeeklyFrequency>
 
 const anamnesisAnswers = z.object({
-  injuries: z.string().trim().max(500).default(''), // "Lesões ou restrições"; vazio = "Sem restrições"
+  // "Lesões ou restrições"; vazio = "Sem restrições"
+  injuries: z.string().trim().max(500, 'Use no máximo 500 caracteres').default(''),
   fitnessLevel: FitnessLevel, // "Nível de condicionamento"
   goal: Goal, // "Objetivo principal"
   weeklyFrequency: WeeklyFrequency, // "Frequência semanal"
-  conditions: z.string().trim().max(500).default(''), // "Doenças preexistentes"; vazio = "Nenhuma"
+  // "Doenças preexistentes"; vazio = "Nenhuma"
+  conditions: z.string().trim().max(500, 'Use no máximo 500 caracteres').default(''),
 })
 
 // PUT /anamnesis/:studentId, só o próprio aluno. consent = opt-in do dado de saúde (RN09).

@@ -1,38 +1,37 @@
-import React from 'react';
+import { useRouter } from 'expo-router'
+import React from 'react'
 import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  Image,
-  TouchableOpacity,
-  StatusBar,
-  SafeAreaView,
   Dimensions,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { tokens } from '@/design-system/tokens';
+  Image,
+  ImageBackground,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { tokens } from '@/design-system/tokens'
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window')
 
 export function SplashScreen() {
-  const router = useRouter();
+  const router = useRouter()
 
   const handleNext = () => {
-    router.push('/(auth)/login' as any);
-  };
+    router.push('/(auth)/login' as any)
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      
+
       <ImageBackground
         source={require('../../../assets/bg-academia.jpg')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
         <SafeAreaView style={styles.overlay}>
-          
           {/* Container da Logo e Subtítulo */}
           <View style={styles.centerContent}>
             <Image
@@ -40,25 +39,18 @@ export function SplashScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.subtitle}>
-              GESTÃO & ACOMPANHAMENTO FITNESS
-            </Text>
+            <Text style={styles.subtitle}>GESTÃO & ACOMPANHAMENTO FITNESS</Text>
           </View>
 
           {/* Rodapé: Indicador Vermelho + Toque para continuar */}
-          <TouchableOpacity
-            style={styles.touchArea}
-            onPress={handleNext}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.touchArea} onPress={handleNext} activeOpacity={0.7}>
             <View style={styles.redBar} />
             <Text style={styles.touchText}>Toque para continuar</Text>
           </TouchableOpacity>
-
         </SafeAreaView>
       </ImageBackground>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -85,9 +77,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logo: {
-    width: width * 0.85,   // Mantida a proporção que você aprovou
+    width: width * 0.85, // Mantida a proporção que você aprovou
     height: height * 0.25,
-    marginBottom: 0,       // Removido a margem inferior para aproximar do texto
+    marginBottom: 0, // Removido a margem inferior para aproximar do texto
   },
   subtitle: {
     color: '#94A3B8',
@@ -96,7 +88,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textAlign: 'center',
     textTransform: 'uppercase',
-    marginTop: -50,         // Margem negativa para colocar o texto bem próximo da logo
+    marginTop: -50, // Margem negativa para colocar o texto bem próximo da logo
   },
   touchArea: {
     alignItems: 'center',
@@ -107,8 +99,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   redBar: {
-    width: 2.5,                  
-    height: height * 0.028,    
+    width: 2.5,
+    height: height * 0.028,
     backgroundColor: '#821212',
     marginBottom: tokens.spacing.sm,
     borderRadius: 1,
@@ -118,4 +110,4 @@ const styles = StyleSheet.create({
     fontSize: tokens.fontSizes.sm,
     fontWeight: '400',
   },
-});
+})

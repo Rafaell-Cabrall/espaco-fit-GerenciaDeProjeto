@@ -1,26 +1,29 @@
 // Dados de desenvolvimento. Senha de todos: Senha123
+import { readFile } from 'node:fs/promises'
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../src/lib/password.ts'
+import { presign } from '../src/lib/storage.ts'
 
 const prisma = new PrismaClient()
 
-const exercises: [string, string][] = [
-  ['Supino Reto com Barra', 'Peito'],
-  ['Supino Inclinado com Halter', 'Peito'],
-  ['Crucifixo no Cross', 'Peito'],
-  ['Tríceps Pulley', 'Tríceps'],
-  ['Tríceps Francês', 'Tríceps'],
-  ['Barra Fixa (Pegada Supinada)', 'Costas'],
-  ['Remada Curvada com Barra', 'Costas'],
-  ['Remada Unilateral com Haltere', 'Costas'],
-  ['Rosca Direta com Barra', 'Bíceps'],
-  ['Rosca Martelo', 'Bíceps'],
-  ['Rosca Concentrada', 'Bíceps'],
-  ['Agachamento Livre', 'Pernas'],
-  ['Leg Press 45°', 'Pernas'],
-  ['Cadeira Extensora', 'Pernas'],
-  ['Mesa Flexora', 'Pernas'],
-  ['Panturrilha em Pé', 'Pernas'],
+// [nome, grupo, GIF em prisma/media/]
+const exercises: [string, string, string][] = [
+  ['Supino Reto com Barra', 'Peito', 'supino-reto-com-barra'],
+  ['Supino Inclinado com Halter', 'Peito', 'supino-inclinado-com-halter'],
+  ['Crucifixo no Cross', 'Peito', 'crucifixo-no-cross'],
+  ['Tríceps Pulley', 'Tríceps', 'triceps-pulley'],
+  ['Tríceps Francês', 'Tríceps', 'triceps-frances'],
+  ['Barra Fixa (Pegada Supinada)', 'Costas', 'barra-fixa-pegada-supinada'],
+  ['Remada Curvada com Barra', 'Costas', 'remada-curvada-com-barra'],
+  ['Remada Unilateral com Haltere', 'Costas', 'remada-unilateral-com-haltere'],
+  ['Rosca Direta com Barra', 'Bíceps', 'rosca-direta-com-barra'],
+  ['Rosca Martelo', 'Bíceps', 'rosca-martelo'],
+  ['Rosca Concentrada', 'Bíceps', 'rosca-concentrada'],
+  ['Agachamento Livre', 'Pernas', 'agachamento-livre'],
+  ['Leg Press 45°', 'Pernas', 'leg-press-45'],
+  ['Cadeira Extensora', 'Pernas', 'cadeira-extensora'],
+  ['Mesa Flexora', 'Pernas', 'mesa-flexora'],
+  ['Panturrilha em Pé', 'Pernas', 'panturrilha-em-pe'],
 ]
 
 async function main() {
@@ -48,12 +51,109 @@ async function main() {
     })
   }
 
+  // GIFs do free-exercise-db (domínio público, ver prisma/media/FONTE.md). Reenviar é idempotente;
+  // mediaKey só é gravado depois do upload, e mídia trocada pelo instrutor não é sobrescrita.
+  try {
+    for (const [name, , slug] of exercises) {
+      const key = `exercises/${slug}.gif`
+      const put = await fetch(presign('PUT', key), {
+        method: 'PUT',
+        headers: { 'content-type': 'image/gif' },
+        body: await readFile(new URL(`media/${slug}.gif`, import.meta.url)),
+      })
+      if (!put.ok) throw new Error(`MinIO respondeu ${put.status}`)
+      await prisma.exercise.updateMany({ where: { name, mediaKey: null }, data: { mediaKey: key } })
+    }
+  } catch (err) {
+    console.warn('Exercícios sem GIF (MinIO no ar? docker compose up -d):', err)
+  }
+
+  // Maria já tem anamnese e ficha ativa A/B/C (telas de treino); João começa do zero (primeiro acesso)
+  await prisma.anamnesis.upsert({
+    where: { studentId: maria.id },
+    update: {},
+    create: {
+      studentId: maria.id,
+      consentAt: new Date(),
+      answers: {
+        injuries: '',
+        fitnessLevel: 'Intermediário',
+        goal: 'Hipertrofia',
+        weeklyFrequency: '3 dias',
+        conditions: '',
+      },
+    },
+  })
+  if (!(await prisma.workoutPlan.findFirst({ where: { studentId: maria.id, status: 'ACTIVE' } }))) {
+    const ids = new Map((await prisma.exercise.findMany()).map((e) => [e.name, e.id]))
+    const divisions: [string, string, string[]][] = [
+      [
+        'A',
+        'Peito & Tríceps',
+        [
+          'Supino Reto com Barra',
+          'Supino Inclinado com Halter',
+          'Crucifixo no Cross',
+          'Tríceps Pulley',
+          'Tríceps Francês',
+        ],
+      ],
+      [
+        'B',
+        'Costas & Bíceps',
+        [
+          'Barra Fixa (Pegada Supinada)',
+          'Remada Curvada com Barra',
+          'Remada Unilateral com Haltere',
+          'Rosca Direta com Barra',
+          'Rosca Martelo',
+        ],
+      ],
+      [
+        'C',
+        'Pernas',
+        [
+          'Agachamento Livre',
+          'Leg Press 45°',
+          'Cadeira Extensora',
+          'Mesa Flexora',
+          'Panturrilha em Pé',
+        ],
+      ],
+    ]
+    await prisma.workoutPlan.create({
+      data: {
+        studentId: maria.id,
+        instructorId: instrutor.id,
+        status: 'ACTIVE',
+        publishedAt: new Date(),
+        divisions: {
+          create: divisions.map(([label, title, names], order) => ({
+            label,
+            title,
+            order,
+            exercises: {
+              create: names.map((name, i) => ({
+                exerciseId: ids.get(name) ?? '',
+                order: i,
+                sets: i === 0 ? 4 : 3,
+                reps: i === 0 ? '8-10' : '10-12',
+                restSeconds: i === 0 ? 90 : 60,
+                targetLoad: name.startsWith('Barra Fixa') ? null : 10 + i * 5,
+              })),
+            },
+          })),
+        },
+      },
+    })
+  }
+
   if ((await prisma.membershipPlan.count()) === 0) {
     await prisma.membershipPlan.create({ data: { name: 'Plano Mensal', priceCents: 8990 } })
   }
 
   console.log(
-    'seed ok — login: admin@espacofit.com / instrutor@espacofit.com / joao@email.com, senha Senha123',
+    'seed ok — login: admin@espacofit.com / instrutor@espacofit.com / joao@email.com / maria@email.com (com ficha), senha Senha123',
   )
 }
 
