@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native'
+import { Dimensions, StyleSheet } from 'react-native'
 import { tokens } from '@/design-system/tokens'
 
 const { width, height } = Dimensions.get('window')
@@ -17,23 +17,23 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
     justifyContent: 'space-between',
-    paddingTop: height * 0.06, 
+    paddingTop: height * 0.06,
   },
   header: {
     width: '100%',
     alignItems: 'flex-start',
-    paddingHorizontal: width * 0.08, 
+    paddingHorizontal: width * 0.08,
   },
   logo: {
-    width: width * 0.34,  
+    width: width * 0.34,
     height: width * 0.34,
     marginTop: -20,
   },
   content: {
     width: '100%',
     alignItems: 'flex-start',
-    paddingHorizontal: width * 0.08, 
-    marginBottom: height * 0.06, 
+    paddingHorizontal: width * 0.08,
+    marginBottom: height * 0.06,
   },
   title: {
     color: '#FFFFFF',

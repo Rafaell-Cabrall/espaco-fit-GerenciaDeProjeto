@@ -1,21 +1,21 @@
+import { useRouter } from 'expo-router'
 import React from 'react'
 import {
-  View,
-  Text,
-  ImageBackground,
   Image,
-  TouchableOpacity,
-  StatusBar,
+  ImageBackground,
   SafeAreaView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native'
-import { useRouter } from 'expo-router'
 import { styles } from './styles'
 
 export function LoginScreen() {
   const router = useRouter()
 
   const handleRegister = () => {
-    router.push('/(auth)/register' as any)
+    router.push('/(auth)/cadastro')
   }
 
   const handleLoginForm = () => {
