@@ -1,0 +1,1 @@
+export { MeusTreinosScreen as default } from '@/screens/MeusTreinos'
