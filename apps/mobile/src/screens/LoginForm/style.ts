@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native'
+import { Dimensions, StyleSheet } from 'react-native'
 
 const { width, height } = Dimensions.get('window')
 
@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
   },
   headerBanner: {
     width: '100%',
-    height: height * 0.32, 
+    height: height * 0.32,
   },
   bannerOverlay: {
     flex: 1,
@@ -34,7 +34,7 @@ export const styles = StyleSheet.create({
     marginTop: -2,
   },
   bannerTitle: {
-    color: '#D50517', 
+    color: '#D50517',
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -84,8 +84,8 @@ export const styles = StyleSheet.create({
   buttonPrimary: {
     width: '100%',
     height: 56,
-    backgroundColor: '#D50517', 
-    borderRadius: 28, 
+    backgroundColor: '#D50517',
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,

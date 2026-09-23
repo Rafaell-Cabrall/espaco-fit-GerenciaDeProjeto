@@ -1,18 +1,18 @@
+import { LinearGradient } from 'expo-linear-gradient'
+import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ImageBackground,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
-import { useRouter } from 'expo-router'
-import { LinearGradient } from 'expo-linear-gradient'
-import Svg, { Path, Circle } from 'react-native-svg'
+import Svg, { Circle, Path } from 'react-native-svg'
 import { useAuth } from '@/auth'
 import { Checkbox } from '@/components/Checkbox'
 import { styles } from './style'
@@ -21,7 +21,16 @@ import { styles } from './style'
 function EyeIcon({ visible }: { visible: boolean }) {
   if (visible) {
     return (
-      <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <Svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#94A3B8"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <Circle cx="12" cy="12" r="3" />
       </Svg>
@@ -29,7 +38,16 @@ function EyeIcon({ visible }: { visible: boolean }) {
   }
 
   return (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <Svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#94A3B8"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
       <Path d="M1 1l22 22" />
     </Svg>
@@ -88,17 +106,11 @@ export function LoginFormScreen() {
             locations={[0, 0.4, 0.8, 1]}
             style={styles.bannerOverlay}
           >
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
 
-            <Text style={styles.bannerTitle}>
-              Seja Bem-vindo!
-            </Text>
+            <Text style={styles.bannerTitle}>Seja Bem-vindo!</Text>
           </LinearGradient>
         </ImageBackground>
 
@@ -150,11 +162,7 @@ export function LoginFormScreen() {
 
           {/* Lembrar Acesso */}
           <View style={styles.rememberContainer}>
-            <Checkbox
-              checked={rememberMe}
-              onChange={setRememberMe}
-              label="Lembrar Acesso"
-            />
+            <Checkbox checked={rememberMe} onChange={setRememberMe} label="Lembrar Acesso" />
           </View>
 
           {/* Botão Entrar */}
@@ -164,19 +172,14 @@ export function LoginFormScreen() {
             disabled={loading}
             activeOpacity={0.8}
           >
-            <Text style={styles.buttonPrimaryText}>
-              {loading ? 'Entrando...' : 'Login'}
-            </Text>
+            <Text style={styles.buttonPrimaryText}>{loading ? 'Entrando...' : 'Login'}</Text>
           </TouchableOpacity>
 
           {/* Rodapé com Links */}
           <View style={styles.footerLinks}>
             <Text style={styles.footerText}>
               Não possui conta?{' '}
-              <Text
-                style={styles.linkRed}
-                onPress={() => router.push('/(auth)/cadastro')}
-              >
+              <Text style={styles.linkRed} onPress={() => router.push('/(auth)/cadastro')}>
                 Cadastre-se
               </Text>
             </Text>

@@ -77,9 +77,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logo: {
-    width: width * 0.85, 
+    width: width * 0.85,
     height: height * 0.25,
-    marginBottom: 0, 
+    marginBottom: 0,
   },
   subtitle: {
     color: '#94A3B8',
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textAlign: 'center',
     textTransform: 'uppercase',
-    marginTop: -50, 
+    marginTop: -50,
   },
   touchArea: {
     alignItems: 'center',

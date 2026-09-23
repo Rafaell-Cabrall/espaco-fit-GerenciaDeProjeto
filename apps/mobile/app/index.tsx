@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { useRouter } from 'expo-router'
+import { Redirect } from 'expo-router'
 import { useAuth } from '@/auth'
 import { SplashScreen } from '@/screens/Splash'
 
@@ -7,18 +6,8 @@ const home = { ALUNO: '/(aluno)', INSTRUTOR: '/(instrutor)', ADMIN: '/(admin)' }
 
 export default function Index() {
   const { user } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    // Se o usuário já estiver autenticado ao abrir o app, redireciona direto para a Home do seu papel
-    if (user) {
-      router.replace(home[user.role] as any)
-    }
-  }, [user])
-
-  // Se a sessão ainda estiver carregando, não renderiza nada para evitar piscar tela
+  // Sessão ainda carregando: nada na tela, para não piscar a splash para quem já está logado.
   if (user === undefined) return null
-
-  // Se não estiver logado, renderiza a tela Splash personalizada (Toque para continuar)
+  if (user) return <Redirect href={home[user.role]} />
   return <SplashScreen />
 }
