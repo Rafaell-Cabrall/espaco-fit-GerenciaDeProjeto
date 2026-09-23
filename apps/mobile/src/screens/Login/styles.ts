@@ -33,55 +33,59 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'flex-start',
     paddingHorizontal: width * 0.08,
-    marginBottom: height * 0.06,
+    marginBottom: height * 0.11, // <--- Aumentado de 0.06 para 0.11 (sobe o bloco inteiro em ~40px)
   },
   title: {
     color: '#FFFFFF',
-    fontSize: 30,
+    fontSize: 32, // Ligeiramente maior para bater com a hierarquia do Figma
     fontWeight: '700',
     textAlign: 'left',
-    lineHeight: 36,
+    lineHeight: 38,
     marginBottom: tokens.spacing.xs,
     letterSpacing: -0.5,
+    fontFamily: 'SpaceGrotesk_700Bold', // Garante a fonte oficial
   },
   highlightText: {
-    color: '#E53E3E',
+    color: '#ca0e0e',
   },
   description: {
     color: '#94A3B8',
     fontSize: tokens.fontSizes.sm,
+    fontFamily: 'SpaceGrotesk_400Regular',
     textAlign: 'left',
     lineHeight: 20,
-    marginBottom: height * 0.03,
+    marginBottom: height * 0.035, // Ligeiro aumento do espaço até o primeiro botão
     maxWidth: '100%',
   },
   buttonPrimary: {
     width: '100%',
-    height: 52,
-    backgroundColor: '#E53E3E',
-    borderRadius: 16,
+    height: 54, // Ajustado para 54 (padrão Figma)
+    backgroundColor: '#ca0e0e',
+    borderRadius: 20, // Borda arredondada idêntica à do Figma
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: tokens.spacing.sm,
+    marginBottom: tokens.spacing.sm + 4, // Mais respiro entre os botões
   },
   buttonPrimaryText: {
     color: '#000000',
     fontSize: tokens.fontSizes.sm,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   buttonSecondary: {
     width: '100%',
-    height: 52,
+    height: 54,
     backgroundColor: '#18181B',
     borderWidth: 1,
     borderColor: '#27272A',
-    borderRadius: 16,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonSecondaryText: {
-    color: '#FFFFFF',
+    color: '#fffbfb',
     fontSize: tokens.fontSizes.sm,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
 })

@@ -17,7 +17,7 @@ services:
     ports: ['6380:6379']
 
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio:latest
     command: server /data --console-address ':9001'
     environment:
       MINIO_ROOT_USER: espacofit
@@ -27,7 +27,7 @@ services:
 
   # cria o bucket "media" uma vez e sai
   minio-init:
-    image: minio/mc
+    image: quay.io/minio/mc:latest
     depends_on: [minio]
     entrypoint: >
       /bin/sh -c "

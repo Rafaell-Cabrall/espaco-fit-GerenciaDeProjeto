@@ -1,3 +1,3 @@
-import { SplashScreen } from '@/screens/Splash'
+import { LoginScreen } from '@/screens/Login'
 
-export default SplashScreen
+export default LoginScreen

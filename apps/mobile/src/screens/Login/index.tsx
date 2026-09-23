@@ -19,8 +19,8 @@ export function LoginScreen() {
   }
 
   const handleLoginForm = () => {
-    router.push('/(auth)/login-form' as any)
-  }
+  router.push('/(auth)/LoginForm' as any)
+}
 
   return (
     <View style={styles.container}>
