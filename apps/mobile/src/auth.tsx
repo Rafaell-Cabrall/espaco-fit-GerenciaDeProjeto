@@ -1,8 +1,11 @@
 // Sessão do usuário logado. `user === undefined` = ainda carregando.
 import { authResponseSchema, type LoginInput, type User, userSchema } from '@espacofit/shared'
 import { useQueryClient } from '@tanstack/react-query'
+import * as SecureStore from 'expo-secure-store'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import { api, tokens } from './api/client'
+
+const FORGET = 'forget-session'
 
 // Home de cada perfil. Redirecionar para "/" de dentro de um grupo não serve: o expo-router
 // resolve "/" para o index do próprio grupo, e o layout redireciona de novo em laço.
@@ -15,7 +18,7 @@ export const homeOf = (user: User | null) =>
 
 type Auth = {
   user: User | null | undefined
-  login: (input: LoginInput) => Promise<void>
+  login: (input: LoginInput, remember?: boolean) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -26,18 +29,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    api('/auth/me', userSchema)
+    // "Lembrar Acesso" desmarcado: a sessão só vale até o app fechar, então morre na abertura
+    SecureStore.getItemAsync(FORGET)
+      .then(async (forget) => {
+        if (!forget) return api('/auth/me', userSchema)
+        await Promise.all([tokens.clear(), SecureStore.deleteItemAsync(FORGET)])
+        queryClient.clear()
+        return null
+      })
       .then(setUser)
       .catch(() => setUser(null))
-  }, [])
+  }, [queryClient])
 
-  const login = async (input: LoginInput) => {
+  const login = async (input: LoginInput, remember = true) => {
     const data = await api('/auth/login', authResponseSchema, {
       method: 'POST',
       body: input,
       auth: false,
     })
     await tokens.set(data.accessToken, data.refreshToken)
+    if (remember) await SecureStore.deleteItemAsync(FORGET)
+    else await SecureStore.setItemAsync(FORGET, '1')
     setUser(data.user)
   }
 
