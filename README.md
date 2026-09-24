@@ -16,7 +16,7 @@ Pré-requisitos: Node 24 (`nvm use` lê o `.nvmrc`), Docker Desktop, app Expo Go
 ```bash
 npm install
 cp .env.example .env          # ajuste EXPO_PUBLIC_API_URL para o IP da sua máquina
-docker compose up -d          # postgres :5433, redis :6380, minio :9000 (console :9001)
+docker compose up -d          # postgres :5433, redis :6380, minio :9100 (console :9101)
 npm run db:migrate            # aplica migrações
 npm run db:seed               # usuários de teste (senha Senha123): admin@espacofit.com, instrutor@espacofit.com, joao@email.com
 ```

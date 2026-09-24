@@ -5,7 +5,7 @@ const schema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET precisa ter pelo menos 16 caracteres'),
   PORT: z.coerce.number().default(3000),
-  S3_ENDPOINT: z.string().default('http://localhost:9000'),
+  S3_ENDPOINT: z.string().default('http://localhost:9100'),
   S3_BUCKET: z.string().default('media'),
   S3_REGION: z.string().default('us-east-1'), // MinIO aceita qualquer; S3 real exige a do bucket
   S3_ACCESS_KEY: z.string().default('espacofit'),
