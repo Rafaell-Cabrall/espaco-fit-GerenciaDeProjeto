@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
 import { tokens } from '@/design-system/tokens'
 
-// Barra inferior do Figma do aluno. Evolução e Perfil entram quando as telas existirem (Sprint 3).
+// Barra inferior do Figma do aluno. Evolução e Perfil são placeholders até a Sprint 3.
 export default function Layout() {
   return (
     <Tabs
@@ -29,6 +29,22 @@ export default function Layout() {
         options={{
           title: 'Treinos',
           tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="evolucao"
+        options={{
+          title: 'Evolução',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trending-up" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
         }}
       />
     </Tabs>

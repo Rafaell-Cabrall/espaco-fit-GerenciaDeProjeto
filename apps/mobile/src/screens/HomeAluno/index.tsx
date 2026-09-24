@@ -1,23 +1,28 @@
-// Home do aluno (Sprint 1): saudação e treino do dia (RN08). Sequência, avisos, contrato e
-// histórico do Figma chegam com as APIs das Sprints 2 a 4.
+// Home do aluno (Sprint 1): saudação, treino do dia (RN08) e histórico. Sequência, avisos e
+// contrato do Figma chegam com as APIs das Sprints 2 a 4.
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { Alert, Pressable, ScrollView, View } from 'react-native'
+import { useState } from 'react'
+import { Pressable, ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '@/auth'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
+import { SairModal } from '@/components/SairModal'
 import { Status } from '@/components/Status'
 import { Text } from '@/components/Text'
 import { tokens } from '@/design-system/tokens'
+import { useHistory } from '@/hooks/useHistory'
 import { usePlan } from '@/hooks/usePlan'
 import { styles } from './styles'
 
 export function HomeAlunoScreen() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const plan = usePlan()
+  const history = useHistory()
+  const [sair, setSair] = useState(false)
 
   if (plan.isPending) return <Status />
   if (plan.isError)
@@ -31,17 +36,7 @@ export function HomeAlunoScreen() {
     )
 
   const today = plan.data?.divisions.find((d) => d.id === plan.data?.todayDivisionId)
-
-  const sair = () =>
-    Alert.alert(
-      'Sair da conta?',
-      'Tem certeza que deseja sair da conta? Você precisará fazer login novamente para acessar seus treinos.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: logout },
-      ],
-    )
-
+  const treinos = history.data?.length
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -51,7 +46,7 @@ export function HomeAlunoScreen() {
             <Text variant="title">{user?.name}</Text>
           </View>
           <Pressable
-            onPress={sair}
+            onPress={() => setSair(true)}
             accessibilityRole="button"
             accessibilityLabel="Sair da conta"
             hitSlop={8}
@@ -102,7 +97,20 @@ export function HomeAlunoScreen() {
             </Text>
           </Card>
         )}
+
+        <View style={styles.row}>
+          <Card style={styles.tile}>
+            <View style={styles.tileIcon}>
+              <Ionicons name="reader" size={18} color={tokens.colors.accent} />
+            </View>
+            <Text style={styles.tileTitle}>Histórico</Text>
+            <Text variant="label">
+              {treinos === undefined ? '—' : treinos === 1 ? '1 treino' : `${treinos} treinos`}
+            </Text>
+          </Card>
+        </View>
       </ScrollView>
+      <SairModal visible={sair} onClose={() => setSair(false)} />
     </SafeAreaView>
   )
 }

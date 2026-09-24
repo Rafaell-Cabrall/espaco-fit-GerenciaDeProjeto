@@ -34,4 +34,20 @@ export const styles = StyleSheet.create({
     fontSize: tokens.fontSizes.xs,
   },
   action: { marginTop: tokens.spacing.sm },
+  // Metade da largura como no Figma; o card Contrato Ativo entra ao lado na Sprint 4
+  row: { flexDirection: 'row', gap: tokens.spacing.md },
+  tile: { flex: 1, maxWidth: '50%', gap: tokens.spacing.sm },
+  tileIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.borderRadius.full,
+    backgroundColor: '#FF940026',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileTitle: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.semibold,
+    fontSize: tokens.fontSizes.md,
+  },
 })

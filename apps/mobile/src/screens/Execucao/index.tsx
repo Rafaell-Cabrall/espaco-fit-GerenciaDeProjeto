@@ -12,17 +12,10 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio'
+import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Pressable,
-  ScrollView,
-  TextInput,
-  Vibration,
-  View,
-} from 'react-native'
+import { Alert, KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { z } from 'zod'
 import { api } from '@/api/client'
@@ -96,8 +89,17 @@ export function ExecucaoScreen() {
       clearTimeout(restAlarm.current)
       // Treino do dia avança para a próxima divisão (RN08) e a carga sugerida muda
       queryClient.invalidateQueries({ queryKey: ['plan'] })
-      Alert.alert('Treino concluído!', `${session.sets.length} séries registradas.`)
-      router.back()
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+      const ms = Date.parse(session.finishedAt ?? '') - Date.parse(session.startedAt)
+      router.replace({
+        pathname: '/(aluno)/treino/concluido',
+        params: {
+          title: division ? `Treino ${division.label} — ${division.title}` : '',
+          sets: session.sets.length,
+          exercises: new Set(session.sets.map((s) => s.divisionExerciseId)).size,
+          minutes: Math.max(1, Math.round(ms / 60_000)),
+        },
+      })
     },
     onError: (e) => Alert.alert('Não foi possível finalizar', e.message),
   })
@@ -154,7 +156,7 @@ export function ExecucaoScreen() {
     restAlarm.current = setTimeout(() => {
       beep.seekTo(0)
       beep.play()
-      Vibration.vibrate(500)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {})
     }, seconds * 1000)
   }
 

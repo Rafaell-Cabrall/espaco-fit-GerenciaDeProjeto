@@ -3,10 +3,10 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  Pressable,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -22,7 +22,7 @@ export function SplashScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <Pressable style={styles.container} onPress={handleNext}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ImageBackground
@@ -42,13 +42,13 @@ export function SplashScreen() {
           </View>
 
           {/* Rodapé: Indicador Vermelho + Toque para continuar */}
-          <TouchableOpacity style={styles.touchArea} onPress={handleNext} activeOpacity={0.7}>
+          <View style={styles.touchArea}>
             <View style={styles.redBar} />
             <Text style={styles.touchText}>Toque para continuar</Text>
-          </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </ImageBackground>
-    </View>
+    </Pressable>
   )
 }
 
