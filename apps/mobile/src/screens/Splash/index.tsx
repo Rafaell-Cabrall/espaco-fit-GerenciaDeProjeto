@@ -19,7 +19,7 @@ export function SplashScreen() {
   const router = useRouter()
 
   const handleNext = () => {
-    router.push('/(auth)/login' as any)
+    router.replace('/(auth)')
   }
 
   return (
@@ -77,18 +77,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logo: {
-    width: width * 0.85, // Mantida a proporção que você aprovou
+    width: width * 0.85,
     height: height * 0.25,
-    marginBottom: 0, // Removido a margem inferior para aproximar do texto
+    marginBottom: 0,
   },
   subtitle: {
     color: '#94A3B8',
     fontSize: tokens.fontSizes.xs,
+    fontFamily: 'SpaceGrotesk_500Medium',
     fontWeight: '500',
     letterSpacing: 1.5,
     textAlign: 'center',
     textTransform: 'uppercase',
-    marginTop: -50, // Margem negativa para colocar o texto bem próximo da logo
+    marginTop: -50,
   },
   touchArea: {
     alignItems: 'center',
