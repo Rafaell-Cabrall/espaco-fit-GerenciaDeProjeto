@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import {
   ImageBackground,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -83,10 +82,7 @@ export function LoginFormScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
