@@ -4,13 +4,13 @@ import {
   Dimensions,
   Image,
   ImageBackground,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { tokens } from '@/design-system/tokens'
 
 const { width, height } = Dimensions.get('window')

@@ -4,6 +4,15 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import { api, tokens } from './api/client'
 
+// Home de cada perfil. Redirecionar para "/" de dentro de um grupo não serve: o expo-router
+// resolve "/" para o index do próprio grupo, e o layout redireciona de novo em laço.
+export const homeOf = (user: User | null) =>
+  user
+    ? ({ ALUNO: '/(aluno)/(tabs)', INSTRUTOR: '/(instrutor)', ADMIN: '/(admin)' } as const)[
+        user.role
+      ]
+    : '/(auth)'
+
 type Auth = {
   user: User | null | undefined
   login: (input: LoginInput) => Promise<void>
