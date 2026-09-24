@@ -48,6 +48,17 @@ export const sessionsRouter = Router()
 
 sessionsRouter.use(auth, requireRole('ALUNO'))
 
+// Histórico: treinos finalizados do aluno, do mais recente ao mais antigo ("Histórico · 24 treinos")
+// ponytail: sem paginação; paginar quando o histórico passar de algumas centenas por aluno
+sessionsRouter.get('/', async (req, res) => {
+  const rows = await prisma.workoutSession.findMany({
+    where: { studentId: req.user.id, finishedAt: { not: null } },
+    orderBy: { finishedAt: 'desc' },
+    include,
+  })
+  res.json(rows.map(toSession))
+})
+
 sessionsRouter.post('/', validate(startSessionSchema), async (req, res) => {
   const { id, divisionId } = req.body
   if (id) {

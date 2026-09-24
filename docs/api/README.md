@@ -39,6 +39,7 @@ Campos, textos e formatos seguem o Figma do aluno (V1); regras seguem o Document
 | `GET /plans/templates` | instrutor | — | `templateSchema[]` | modelos |
 | `POST /plans/templates` | instrutor | `createTemplateSchema` | `201` `templateSchema` | salvar como modelo |
 | `GET /exercises` | instrutor, admin | — | `exerciseSchema[]` | biblioteca |
+| `GET /sessions` | aluno | — | `sessionSchema[]` finalizados, mais recente primeiro | card Histórico |
 | `POST /sessions` | aluno | `startSessionSchema` | `201` `sessionSchema`; `404` divisão fora da ficha ativa; `409` id já usado por outro aluno | Iniciar |
 | `PUT /sessions/:id/sets` | aluno dono | `setLogInputSchema` | `setLogSchema`; `400` exercício de outra divisão ou série além do total; `409` treino finalizado | concluir série, carga |
 | `DELETE /sessions/:id/sets/:divisionExerciseId/:setNumber` | aluno dono | — | `204` | desmarcar série |
