@@ -11,6 +11,10 @@ export const tokens = {
     error: '#FF4D5A',
     success: '#05D51A',
     border: '#2A2A2A',
+    // Fluxo de treino (Figma do aluno): laranja das abas, "Iniciar" e série concluída;
+    // verde-limão do play da demonstração e do cronômetro de descanso
+    accent: '#FF9400',
+    highlight: '#E1FF00',
   },
   // Space Grotesk (Figma). Use a família do peso em vez de fontWeight: no Android fonte
   // customizada ignora fontWeight.
