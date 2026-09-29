@@ -1,7 +1,7 @@
 // Integração: exige Postgres e Redis (docker compose up -d) e migrações aplicadas.
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
-import type { Role } from '@espacofit/shared'
+import type { Role, StudentLink } from '@espacofit/shared'
 import { app } from '../src/app.ts'
 import { signAccess } from '../src/lib/jwt.ts'
 import { prisma } from '../src/lib/prisma.ts'
@@ -47,6 +47,7 @@ describe('links', () => {
   })
 
   after(async () => {
+    await prisma.anamnesis.deleteMany({ where: { student: { email: { in: emails } } } })
     await prisma.link.deleteMany({ where: { student: { email: { in: emails } } } })
     await prisma.user.deleteMany({ where: { email: { in: emails } } })
     await prisma.$disconnect()
@@ -120,6 +121,22 @@ describe('links', () => {
     const deOutro: { student: { id: string } }[] = await (await call('GET', instrutor.token)).json()
     assert.ok(!deOutro.some((l) => l.student.id === aluno.id))
     assert.equal((await call('GET', admin.token)).status, 200)
+  })
+
+  it('lista traz objetivo e nascimento só para o instrutor (RN09)', async () => {
+    await prisma.anamnesis.create({
+      data: { studentId: aluno.id, answers: { birthDate: '1998-03-15', goal: 'Tonificação' } },
+    })
+    type Row = { student: StudentLink['student'] }
+    const find = async (token: string) =>
+      ((await (await call('GET', token)).json()) as Row[]).find((l) => l.student.id === aluno.id)
+    const mine = await find(outroInstrutor.token)
+    assert.equal(mine?.student.goal, 'Tonificação')
+    assert.equal(mine?.student.birthDate, '1998-03-15')
+    assert.equal(mine?.student.lastWorkoutAt, null)
+    const asAdmin = await find(admin.token)
+    assert.equal(asAdmin?.student.goal, null)
+    assert.equal(asAdmin?.student.birthDate, null)
   })
 
   it('aluno não lista nem vincula', async () => {

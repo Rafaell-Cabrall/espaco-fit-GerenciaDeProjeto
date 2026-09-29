@@ -44,6 +44,7 @@ describe('fichas', () => {
   let exerciseIds: string[]
   let divisions: unknown[]
   let draft: Plan
+  const period = { name: 'Hipertrofia — ABC', startsOn: '2026-08-28', endsOn: '2026-11-28' }
 
   before(async () => {
     server = app.listen(0)
@@ -69,6 +70,7 @@ describe('fichas', () => {
     divisions = exerciseIds.map((exerciseId, i) => ({
       label: 'ABC'[i],
       title: `Divisão ${i}`,
+      weekday: i === 0 ? 1 : null,
       exercises: [{ exerciseId, sets: 3, reps: '8-10', restSeconds: 60, targetLoadKg: 20 }],
     }))
   })
@@ -90,10 +92,11 @@ describe('fichas', () => {
   it('bloqueia criar sem anamnese (RN05) e sem vínculo', async () => {
     const semAnam = await call('POST', '/plans', instrutor.token, {
       studentId: semAnamnese.id,
+      ...period,
       divisions,
     })
     assert.equal(semAnam.status, 409)
-    const body = { studentId: aluno.id, divisions }
+    const body = { studentId: aluno.id, ...period, divisions }
     assert.equal((await call('POST', '/plans', outroInstrutor.token, body)).status, 403)
     assert.equal((await call('POST', '/plans', admin.token, body)).status, 403)
   })
@@ -101,6 +104,7 @@ describe('fichas', () => {
   it('recusa exercício fora da biblioteca', async () => {
     const res = await call('POST', '/plans', instrutor.token, {
       studentId: aluno.id,
+      ...period,
       divisions: [
         { label: 'A', title: 'X', exercises: [{ exerciseId: 'nao-existe', sets: 3, reps: '12' }] },
       ],
@@ -109,7 +113,11 @@ describe('fichas', () => {
   })
 
   it('cria rascunho que o aluno ainda não vê', async () => {
-    const res = await call('POST', '/plans', instrutor.token, { studentId: aluno.id, divisions })
+    const res = await call('POST', '/plans', instrutor.token, {
+      studentId: aluno.id,
+      ...period,
+      divisions,
+    })
     assert.equal(res.status, 201)
     draft = await res.json()
     assert.equal(draft.status, 'DRAFT')
@@ -122,7 +130,7 @@ describe('fichas', () => {
   })
 
   it('só o autor edita o rascunho; admin lê', async () => {
-    const two = { divisions: divisions.slice(0, 2) }
+    const two = { ...period, divisions: divisions.slice(0, 2) }
     assert.equal((await call('PUT', `/plans/${draft.id}`, outroInstrutor.token, two)).status, 403)
     assert.equal((await call('PUT', `/plans/${draft.id}`, admin.token, two)).status, 403)
     const res = await call('PUT', `/plans/${draft.id}`, instrutor.token, two)
@@ -141,11 +149,11 @@ describe('fichas', () => {
     assert.ok(published.publishedAt)
 
     const next: Plan = await (
-      await call('POST', '/plans', instrutor.token, { studentId: aluno.id, divisions })
+      await call('POST', '/plans', instrutor.token, { studentId: aluno.id, ...period, divisions })
     ).json()
     await call('POST', `/plans/${next.id}/publish`, instrutor.token)
     assert.equal(
-      (await call('PUT', `/plans/${next.id}`, instrutor.token, { divisions })).status,
+      (await call('PUT', `/plans/${next.id}`, instrutor.token, { ...period, divisions })).status,
       409,
     )
 
@@ -184,6 +192,42 @@ describe('fichas', () => {
     assert.equal(afterC.todayDivisionId, a.id)
   })
 
+  it('recusa período invertido', async () => {
+    const res = await call('POST', '/plans', instrutor.token, {
+      studentId: aluno.id,
+      ...period,
+      endsOn: '2026-08-01',
+      divisions,
+    })
+    assert.equal(res.status, 400)
+  })
+
+  it('ficha traz nome, período e dia da semana', async () => {
+    const plan: Plan = await (await call('GET', `/plans/${draft.id}`, instrutor.token)).json()
+    assert.equal(plan.name, period.name)
+    assert.equal(plan.startsOn, period.startsOn)
+    assert.equal(plan.endsOn, period.endsOn)
+    assert.equal(plan.divisions[0]?.weekday, 1)
+    assert.equal(plan.divisions[1]?.weekday, null)
+  })
+
+  it('lista as fichas do aluno; rascunho só para o instrutor', async () => {
+    await call('POST', '/plans', instrutor.token, { studentId: aluno.id, ...period, divisions })
+    const list = (studentId: string, token: string) =>
+      call('GET', `/plans?studentId=${studentId}`, token)
+    const mine = await (await list(aluno.id, instrutor.token)).json()
+    assert.deepEqual(
+      mine.map((p: { status: string }) => p.status),
+      ['DRAFT', 'ACTIVE', 'EXPIRED'],
+    )
+    assert.deepEqual(mine[1].labels, ['A', 'B', 'C'])
+    assert.equal(mine[1].startsOn, period.startsOn)
+    const seen = await (await list(aluno.id, aluno.token)).json()
+    assert.equal(seen.length, 2)
+    assert.equal((await list(aluno.id, outroInstrutor.token)).status, 403)
+    assert.equal((await call('GET', '/plans', instrutor.token)).status, 400)
+  })
+
   it('instrutor sem vínculo não lê a ficha do aluno', async () => {
     const res = await call('GET', `/plans/student/${aluno.id}`, outroInstrutor.token)
     assert.equal(res.status, 403)
@@ -199,6 +243,19 @@ describe('fichas', () => {
     assert.equal(mine.length, 1)
     assert.equal(mine[0].divisions[0].exercises[0].restSeconds, 60)
     assert.deepEqual(await (await call('GET', '/plans/templates', outroInstrutor.token)).json(), [])
+
+    const { id } = await created.json()
+    const path = `/plans/templates/${id}`
+    const renamed = await call('PUT', path, instrutor.token, {
+      name: `Iniciante ${run}`,
+      divisions,
+    })
+    assert.equal((await renamed.json()).name, `Iniciante ${run}`)
+    const alheio = { name: 'Alheio', divisions }
+    assert.equal((await call('PUT', path, outroInstrutor.token, alheio)).status, 404)
+    assert.equal((await call('DELETE', path, outroInstrutor.token)).status, 404)
+    assert.equal((await call('DELETE', path, instrutor.token)).status, 204)
+    assert.deepEqual(await (await call('GET', '/plans/templates', instrutor.token)).json(), [])
   })
 
   it('biblioteca lista exercícios para instrutor, não para aluno', async () => {

@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'node:crypto'
-import type { LoginInput, RegisterInput, Role } from '@espacofit/shared'
+import type { LoginInput, Role } from '@espacofit/shared'
 import { HttpError } from '../../lib/http.ts'
 import { signAccess, signRefresh, verifyToken } from '../../lib/jwt.ts'
 import { codeMail } from '../../lib/mail.ts'
@@ -22,19 +22,6 @@ function session({ id, name, email, role, tokenVersion }: SessionUser) {
 async function hit(key: string, windowSec: number) {
   const res = await redis.multi().incr(key).expire(key, windowSec, 'NX').exec()
   return Number(res?.[0]?.[1])
-}
-
-export async function register(input: RegisterInput) {
-  const exists = await prisma.user.findUnique({ where: { email: input.email } })
-  if (exists) throw new HttpError(409, 'E-mail já cadastrado')
-  const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      passwordHash: await hashPassword(input.password),
-    },
-  })
-  return session(user)
 }
 
 const LOGIN_MAX_FAILS = 10
@@ -77,14 +64,57 @@ export async function me(id: string) {
 }
 
 // ponytail: derruba as sessões em todos os aparelhos; sessão por aparelho exige tabela de refresh tokens
+// O push para de chegar no aparelho de quem saiu
 export async function logout(id: string) {
-  await prisma.user.update({ where: { id }, data: { tokenVersion: { increment: 1 } } })
+  await prisma.user.update({
+    where: { id },
+    data: { tokenVersion: { increment: 1 }, pushToken: null },
+  })
+}
+
+// Um aparelho, uma conta: o token sai de quem usou o celular antes
+export async function setPushToken(id: string, token: string) {
+  await prisma.$transaction([
+    prisma.user.updateMany({ where: { pushToken: token, NOT: { id } }, data: { pushToken: null } }),
+    prisma.user.update({ where: { id }, data: { pushToken: token } }),
+  ])
 }
 
 // O banco guarda só o hash: um vazamento do banco não entrega códigos válidos
 const hashCode = (code: string) => createHash('sha256').update(code).digest('hex')
 const RESEND_COOLDOWN_SEC = 60 // timer "Reenviar código em 00:59" do Figma
 const CODES_PER_HOUR = 5 // protege a caixa do aluno e a cota diária do SMTP
+const INVITE_MS = 72 * 3_600_000 // o convite espera o aluno sair da avaliação e abrir o e-mail
+
+// Grava o hash de um código novo de 6 dígitos e zera as conferências. O código em claro só vai no e-mail.
+async function issueCode(id: string, validMs: number) {
+  const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+  await prisma.user.update({
+    where: { id },
+    data: {
+      resetCode: hashCode(code),
+      resetCodeExpiresAt: new Date(Date.now() + validMs),
+      resetCodeAttempts: 0,
+    },
+  })
+  return code
+}
+
+// Convite: o usuário nasce sem senha conhecida e cria a dele em "Primeiro acesso"
+export async function sendInvite({ id, name, email }: { id: string; name: string; email: string }) {
+  const code = await issueCode(id, INVITE_MS)
+  await enqueue(
+    'email',
+    codeMail(
+      email,
+      `${code} é seu código de primeiro acesso — Espaço Fit`,
+      name,
+      'Seu cadastro no Espaço Fit está pronto. No app, toque em "Primeiro acesso", informe este e-mail e digite o código abaixo para criar sua senha. Ele vale por 3 dias.',
+      code,
+      'Se o código expirar, toque em "Reenviar código" no app para receber outro.',
+    ),
+  )
+}
 
 // Gera código de 6 dígitos válido por 10 min. O e-mail sai pelo worker; a resposta não espera o SMTP.
 export async function forgotPassword(email: string) {
@@ -99,15 +129,7 @@ export async function forgotPassword(email: string) {
 
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user) return
-  const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      resetCode: hashCode(code),
-      resetCodeExpiresAt: new Date(Date.now() + 10 * 60_000),
-      resetCodeAttempts: 0,
-    },
-  })
+  const code = await issueCode(user.id, 10 * 60_000)
   await enqueue(
     'email',
     codeMail(

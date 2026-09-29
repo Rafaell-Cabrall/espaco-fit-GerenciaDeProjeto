@@ -174,9 +174,14 @@ export function LoginFormScreen() {
           {/* Rodapé com Links */}
           <View style={styles.footerLinks}>
             <Text style={styles.footerText}>
-              Não possui conta?{' '}
-              <Text style={styles.linkRed} onPress={() => router.push('/(auth)/cadastro')}>
-                Cadastre-se
+              Recebeu o convite?{' '}
+              <Text
+                style={styles.linkRed}
+                onPress={() =>
+                  router.push({ pathname: '/(auth)/esqueci-senha', params: { primeiro: '1' } })
+                }
+              >
+                Primeiro acesso
               </Text>
             </Text>
 

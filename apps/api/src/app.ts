@@ -8,6 +8,7 @@ import { billingRouter } from './modules/billing/router.ts'
 import { checkinRouter } from './modules/checkin/router.ts'
 import { exercisesRouter } from './modules/exercises/router.ts'
 import { feedRouter } from './modules/feed/router.ts'
+import { feedbacksRouter } from './modules/feedbacks/router.ts'
 import { linksRouter } from './modules/links/router.ts'
 import { plansRouter } from './modules/plans/router.ts'
 import { sessionsRouter } from './modules/sessions/router.ts'
@@ -28,6 +29,7 @@ app.use('/anamnesis', anamnesisRouter)
 app.use('/exercises', exercisesRouter)
 app.use('/plans', plansRouter)
 app.use('/sessions', sessionsRouter)
+app.use('/feedbacks', feedbacksRouter)
 app.use('/feed', feedRouter)
 app.use('/billing', billingRouter)
 app.use('/checkin', checkinRouter)

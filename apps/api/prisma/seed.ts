@@ -68,28 +68,46 @@ async function main() {
     console.warn('Exercícios sem GIF (MinIO no ar? docker compose up -d):', err)
   }
 
-  // Maria já tem anamnese e ficha ativa A/B/C (telas de treino); João começa do zero (primeiro acesso)
-  await prisma.anamnesis.upsert({
-    where: { studentId: maria.id },
-    update: {},
-    create: {
-      studentId: maria.id,
-      consentAt: new Date(),
-      answers: {
-        injuries: '',
-        fitnessLevel: 'Intermediário',
-        goal: 'Hipertrofia',
-        weeklyFrequency: '3 dias',
-        conditions: '',
-      },
-    },
+  // Anamnese que o instrutor preencheu no cadastro. Maria já consentiu e tem ficha ativa A/B/C
+  // (telas de treino); João ainda não consentiu (primeiro acesso). update reescreve o formato antigo.
+  const answers = (goal: string, conditions: string) => ({
+    birthDate: '1998-03-15',
+    phone: '(11) 99123-4567',
+    cpf: '',
+    profession: 'Designer Gráfica',
+    goal,
+    goalDetails: '',
+    daysPerWeek: 4,
+    minutesPerSession: 60,
+    activityHistory: 'Musculação há 2 anos, pausou por 3 meses',
+    weightTrainingExperience: 'Sim — experiência intermediária',
+    conditions,
+    effortSymptoms: '',
+    injuries: '',
+    medications: '',
+    familyHeartHistory: '',
+    sleep: 'Regular — dorme ~7 h por noite',
+    hydration: 'Aproximadamente 2 L por dia',
+    smokingAlcohol: 'Não fuma · Bebe socialmente',
   })
+  for (const [studentId, data] of [
+    [maria.id, { answers: answers('Hipertrofia', ''), consentAt: new Date() }],
+    [joao.id, { answers: answers('Emagrecimento', 'Asma'), consentAt: null }],
+  ] as const) {
+    await prisma.anamnesis.upsert({
+      where: { studentId },
+      update: data,
+      create: { studentId, ...data },
+    })
+  }
   if (!(await prisma.workoutPlan.findFirst({ where: { studentId: maria.id, status: 'ACTIVE' } }))) {
     const ids = new Map((await prisma.exercise.findMany()).map((e) => [e.name, e.id]))
-    const divisions: [string, string, string[]][] = [
+    // [rótulo, título, dia da semana, exercícios]
+    const divisions: [string, string, number, string[]][] = [
       [
         'A',
         'Peito & Tríceps',
+        1,
         [
           'Supino Reto com Barra',
           'Supino Inclinado com Halter',
@@ -101,6 +119,7 @@ async function main() {
       [
         'B',
         'Costas & Bíceps',
+        3,
         [
           'Barra Fixa (Pegada Supinada)',
           'Remada Curvada com Barra',
@@ -112,6 +131,7 @@ async function main() {
       [
         'C',
         'Pernas',
+        5,
         [
           'Agachamento Livre',
           'Leg Press 45°',
@@ -126,11 +146,15 @@ async function main() {
         studentId: maria.id,
         instructorId: instrutor.id,
         status: 'ACTIVE',
+        name: 'Hipertrofia — ABC',
+        startsOn: new Date(Date.now() - 34 * 86_400_000),
+        endsOn: new Date(Date.now() + 57 * 86_400_000),
         publishedAt: new Date(),
         divisions: {
-          create: divisions.map(([label, title, names], order) => ({
+          create: divisions.map(([label, title, weekday, names], order) => ({
             label,
             title,
+            weekday,
             order,
             exercises: {
               create: names.map((name, i) => ({
@@ -153,7 +177,7 @@ async function main() {
   }
 
   console.log(
-    'seed ok — login: admin@espacofit.com / instrutor@espacofit.com / joao@email.com / maria@email.com (com ficha), senha Senha123',
+    'seed ok — login: admin@espacofit.com / instrutor@espacofit.com / joao@email.com (falta consentir a anamnese) / maria@email.com (com ficha), senha Senha123',
   )
 }
 

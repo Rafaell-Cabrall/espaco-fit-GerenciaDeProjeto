@@ -45,14 +45,45 @@ linksRouter.post('/', requireRole('ADMIN'), validate(createLinkSchema), async (r
   res.status(201).json(link)
 })
 
-// Admin vê todos os vínculos ativos; instrutor vê só os seus alunos
+// Admin vê todos os vínculos ativos; instrutor vê só os seus alunos. Objetivo e nascimento vêm da
+// anamnese e só vão para o instrutor (RN09).
 linksRouter.get('/', requireRole('ADMIN', 'INSTRUTOR'), async (req, res) => {
-  const instructorId = req.user.role === 'INSTRUTOR' ? req.user.id : undefined
+  const isInstructor = req.user.role === 'INSTRUTOR'
+  const rows = await prisma.link.findMany({
+    where: { status: 'ACTIVE', instructorId: isInstructor ? req.user.id : undefined },
+    select: {
+      ...select,
+      student: {
+        select: {
+          id: true,
+          name: true,
+          anamnesis: { select: { answers: true } },
+          sessions: {
+            where: { finishedAt: { not: null } },
+            orderBy: { finishedAt: 'desc' },
+            take: 1,
+            select: { finishedAt: true },
+          },
+        },
+      },
+    },
+    orderBy: { student: { name: 'asc' } },
+  })
   res.json(
-    await prisma.link.findMany({
-      where: { status: 'ACTIVE', instructorId },
-      select,
-      orderBy: { student: { name: 'asc' } },
+    rows.map(({ student: { anamnesis, sessions, ...student }, ...link }) => {
+      const answers = (isInstructor ? anamnesis?.answers : null) as {
+        goal?: string
+        birthDate?: string
+      } | null
+      return {
+        ...link,
+        student: {
+          ...student,
+          goal: answers?.goal ?? null,
+          birthDate: answers?.birthDate ?? null,
+          lastWorkoutAt: sessions[0]?.finishedAt ?? null,
+        },
+      }
     }),
   )
 })

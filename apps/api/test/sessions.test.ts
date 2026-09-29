@@ -40,6 +40,9 @@ async function plan(
       studentId,
       instructorId,
       status,
+      name: 'Ficha',
+      startsOn: new Date('2026-09-01'),
+      endsOn: new Date('2026-12-01'),
       divisions: {
         create: {
           label: 'A',
@@ -60,6 +63,7 @@ describe('treino', () => {
   let aluno: Awaited<ReturnType<typeof user>>
   let outroAluno: Awaited<ReturnType<typeof user>>
   let instrutor: Awaited<ReturnType<typeof user>>
+  let semVinculo: Awaited<ReturnType<typeof user>>
   let exerciseId: string
   let active: Awaited<ReturnType<typeof plan>>
   let draft: Awaited<ReturnType<typeof plan>>
@@ -71,6 +75,7 @@ describe('treino', () => {
     aluno = await user('ALUNO')
     outroAluno = await user('ALUNO')
     instrutor = await user('INSTRUTOR')
+    semVinculo = await user('INSTRUTOR')
     exerciseId = (
       await prisma.exercise.create({ data: { name: `Supino ${run}`, muscleGroup: 'Teste' } })
     ).id
@@ -81,6 +86,7 @@ describe('treino', () => {
   after(async () => {
     const students = { where: { student: { email: { in: emails } } } }
     await prisma.workoutSession.deleteMany(students)
+    await prisma.link.deleteMany(students)
     await prisma.workoutPlan.deleteMany(students)
     await prisma.exercise.delete({ where: { id: exerciseId } })
     await prisma.user.deleteMany({ where: { email: { in: emails } } })
@@ -156,7 +162,10 @@ describe('treino', () => {
       await call('POST', `/sessions/${s.id}/finish`, aluno.token, { notes })
     ).json()
     assert.ok(done.finishedAt)
-    assert.deepEqual(done.notes, notes)
+    assert.deepEqual(done.notes, [
+      { divisionExerciseId: active.itemId, exercise: `Supino ${run}`, text: 'Senti o ombro' },
+    ])
+    assert.equal(done.division.label, 'A')
     assert.equal(done.sets.length, 1)
 
     const again = await call('POST', `/sessions/${s.id}/finish`, aluno.token, {})
@@ -171,5 +180,36 @@ describe('treino', () => {
       [s.id],
     )
     assert.deepEqual(await (await call('GET', '/sessions', outroAluno.token)).json(), [])
+  })
+
+  it('frequência: sequência, mês e total', async () => {
+    const f = await (await call('GET', '/sessions/frequency', aluno.token)).json()
+    assert.equal(f.totalCount, 1)
+    assert.equal(f.currentStreak, 1)
+    assert.equal(f.bestStreak, 1)
+    assert.equal(f.monthCount, 1)
+    assert.equal(f.days.length, 1)
+    const empty = await (await call('GET', '/sessions/frequency?month=2000-01', aluno.token)).json()
+    assert.deepEqual([empty.monthCount, empty.days, empty.totalCount], [0, [], 1])
+    assert.equal((await call('GET', '/sessions/frequency?month=2026-9', aluno.token)).status, 400)
+    assert.equal((await call('GET', '/sessions/frequency', instrutor.token)).status, 403)
+  })
+
+  it('instrutor com vínculo lê o histórico do aluno com filtros', async () => {
+    await prisma.link.create({ data: { studentId: aluno.id, instructorId: instrutor.id } })
+    const history = async (query: string, token = instrutor.token) =>
+      (await call('GET', `/sessions?studentId=${aluno.id}${query}`, token)).json()
+    const all = await history('')
+    assert.equal(all.length, 1)
+    const { planId } = all[0].division
+    assert.equal((await history('&planId=outra')).length, 0)
+    assert.equal((await history(`&planId=${planId}&from=2000-01-01&to=2100-01-01`)).length, 1)
+    assert.equal((await history('&to=2000-01-01')).length, 0)
+    // aluno ignora o studentId da query e vê só os próprios
+    assert.deepEqual(await history('', outroAluno.token), [])
+    const alheio = await call('GET', `/sessions?studentId=${aluno.id}`, semVinculo.token)
+    assert.equal(alheio.status, 403)
+    assert.equal((await call('GET', '/sessions', instrutor.token)).status, 400)
+    assert.equal((await call('GET', '/sessions?from=01/01/2026', aluno.token)).status, 400)
   })
 })

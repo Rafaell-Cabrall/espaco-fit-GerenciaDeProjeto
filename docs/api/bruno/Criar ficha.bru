@@ -17,9 +17,13 @@ auth:bearer {
 body:json {
   {
     "studentId": "{{studentId}}",
+    "name": "Hipertrofia — ABC",
+    "startsOn": "2026-10-01",
+    "endsOn": "2026-12-31",
     "divisions": [
       {
         "label": "A",
+        "weekday": 1,
         "title": "Peito & Tríceps",
         "exercises": [
           { "exerciseId": "{{ex_Supino_Reto_com_Barra}}", "sets": 4, "reps": "8-10", "restSeconds": 90, "targetLoadKg": 30 },
@@ -29,6 +33,7 @@ body:json {
       },
       {
         "label": "B",
+        "weekday": 3,
         "title": "Costas & Bíceps",
         "exercises": [
           { "exerciseId": "{{ex_Barra_Fixa_Pegada_Supinada}}", "sets": 3, "reps": "6-8", "restSeconds": 90, "targetLoadKg": null },
@@ -38,6 +43,7 @@ body:json {
       },
       {
         "label": "C",
+        "weekday": 5,
         "title": "Pernas",
         "exercises": [
           { "exerciseId": "{{ex_Agachamento_Livre}}", "sets": 4, "reps": "8-10", "restSeconds": 120, "targetLoadKg": 40 },

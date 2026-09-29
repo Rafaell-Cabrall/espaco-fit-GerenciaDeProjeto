@@ -1,0 +1,51 @@
+meta {
+  name: Cadastrar aluno
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{instructorToken}}
+}
+
+body:json {
+  {
+    "name": "Aluno Convidado",
+    "email": "{{inviteEmail}}",
+    "anamnesis": {
+      "birthDate": "1998-03-15",
+      "phone": "(11) 99123-4567",
+      "profession": "Designer Gráfica",
+      "goal": "Hipertrofia",
+      "goalDetails": "Hipertrofia e definição muscular",
+      "daysPerWeek": 4,
+      "minutesPerSession": 60,
+      "activityHistory": "Musculação há 2 anos, pausou por 3 meses",
+      "weightTrainingExperience": "Sim — experiência intermediária",
+      "conditions": "",
+      "effortSymptoms": "Leve dor no joelho após corrida prolongada",
+      "injuries": "",
+      "medications": "Anticoncepcional oral",
+      "familyHeartHistory": "Avô paterno com infarto aos 58 anos",
+      "sleep": "Regular — dorme ~7 h por noite",
+      "hydration": "Aproximadamente 2 L por dia",
+      "smokingAlcohol": "Não fuma · Bebe socialmente"
+    }
+  }
+}
+
+script:pre-request {
+  // e-mail novo a cada execução; example.com não entrega a ninguém. O código sai no console do worker.
+  bru.setVar("inviteEmail", `convidado-${Date.now()}@example.com`);
+}
+
+assert {
+  res.status: eq 201
+  res.body.role: eq ALUNO
+}

@@ -6,8 +6,9 @@ import { styles } from './styles'
 export function LoginScreen() {
   const router = useRouter()
 
-  const handleRegister = () => {
-    router.push('/(auth)/cadastro')
+  // Sem autocadastro: quem recebeu o convite da academia cria a senha com o código do e-mail
+  const handleFirstAccess = () => {
+    router.push({ pathname: '/(auth)/esqueci-senha', params: { primeiro: '1' } })
   }
 
   const handleLoginForm = () => {
@@ -48,10 +49,10 @@ export function LoginScreen() {
             {/* Botão Principal */}
             <TouchableOpacity
               style={styles.buttonPrimary}
-              onPress={handleRegister}
+              onPress={handleFirstAccess}
               activeOpacity={0.8}
             >
-              <Text style={styles.buttonPrimaryText}>Criar conta grátis</Text>
+              <Text style={styles.buttonPrimaryText}>Primeiro acesso</Text>
             </TouchableOpacity>
 
             {/* Botão Secundário */}

@@ -82,14 +82,15 @@ model Link {
   @@index([instructorId, status])
 }
 
-// RN05/RN09 — anamnese com consentimento LGPD; answers guarda o questionário (tela Evolução > Anamnese)
+// RN05/RN09 — anamnese preenchida pelo instrutor no cadastro; consentAt nulo até o aluno autorizar
 model Anamnesis {
-  id        String   @id @default(cuid())
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId String   @unique
-  answers   Json
-  consentAt DateTime
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       String    @unique
+  answers         Json
+  consentAt       DateTime?
+  instructorNotes String    @default("") // "Observações do Personal"
+  updatedAt       DateTime  @updatedAt
 }
 
 // biblioteca de exercícios; mediaKey aponta para objeto no MinIO/S3
@@ -113,6 +114,9 @@ model WorkoutPlan {
   instructor   User       @relation("planInstructor", fields: [instructorId], references: [id])
   instructorId String
   status       PlanStatus @default(DRAFT)
+  name         String // "Hipertrofia — ABC"
+  startsOn     DateTime   @db.Date
+  endsOn       DateTime   @db.Date
   publishedAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -130,6 +134,8 @@ model WorkoutDivision {
   label  String // A, B, C...
   title  String // Costas & Bíceps
   order  Int
+  // 0 = domingo … 6 = sábado; só rótulo, o treino do dia segue a rotação (RN08)
+  weekday Int?
 
   exercises DivisionExercise[]
   sessions  WorkoutSession[]
@@ -168,9 +174,8 @@ model WorkoutSession {
   divisionId    String
   startedAt     DateTime        @default(now())
   finishedAt    DateTime?
-  effort        Int? // 1..5 (feedback pós-treino)
-  comment       String?
-  exerciseNotes Json? // { [divisionExerciseId]: "Senti o ombro..." }
+  exerciseNotes Json? // { [divisionExerciseId]: "Senti o ombro..." } — feedback ao instrutor
+  notesReadAt   DateTime? // instrutor abriu os comentários ("não lidos")
 
   setLogs SetLog[]
 

@@ -8,8 +8,9 @@ import { Button } from '@/components/Button'
 import { tokens } from '@/design-system/tokens'
 
 // Guarda de perfil: só ALUNO entra neste grupo.
-// Portão da anamnese (RN05/RN09): null = ainda não respondeu, e aí nada do app abre antes dela.
-// Erro de rede não é null — mandar para o formulário quem já respondeu apagaria as respostas.
+// Portão da anamnese (RN05/RN09). O instrutor cadastra a anamnese com o aluno; null = ainda não
+// cadastrou, e o app espera. consentAt null = falta o aluno autorizar, e nada abre antes disso.
+// Erro de rede não é null: o portão mostra o erro em vez de concluir que falta cadastro.
 export default function Layout() {
   const { user } = useAuth()
   const pathname = usePathname()
@@ -41,13 +42,27 @@ export default function Layout() {
         />
       </View>
     )
+  if (anamnese.data === null)
+    return (
+      <View style={styles.center}>
+        <Text style={styles.message}>
+          Seu cadastro ainda não tem a avaliação física. Procure seu instrutor para liberar os
+          treinos.
+        </Text>
+        <Button
+          title="Tentar de novo"
+          onPress={() => anamnese.refetch()}
+          loading={anamnese.isFetching}
+        />
+      </View>
+    )
 
   // O Stack fica montado sempre: a rota da anamnese vive dentro dele, e devolver o <Redirect> no
   // lugar dele deixaria o destino sem navegador onde montar — tela branca.
   // endsWith e não igualdade: o grupo some da URL, mas um laço de redirect aqui trava o app.
   return (
     <>
-      {anamnese.data === null && !pathname.endsWith('/anamnese') && (
+      {anamnese.data.consentAt === null && !pathname.endsWith('/anamnese') && (
         <Redirect href="/(aluno)/anamnese" />
       )}
       <Stack screenOptions={{ headerShown: false }} />
