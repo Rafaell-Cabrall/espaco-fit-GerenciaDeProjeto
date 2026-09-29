@@ -40,6 +40,9 @@ async function plan(
       studentId,
       instructorId,
       status,
+      name: 'Ficha',
+      startsOn: new Date('2026-09-01'),
+      endsOn: new Date('2026-12-01'),
       divisions: {
         create: {
           label: 'A',
