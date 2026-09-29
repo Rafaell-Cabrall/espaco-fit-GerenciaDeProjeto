@@ -50,7 +50,7 @@ after(async () => {
   await prisma.user.deleteMany({ where: { email: { in: testEmails } } })
   for (const e of testEmails) await clearLimits(e)
   for (const job of await queue.getJobs(['waiting', 'delayed'])) {
-    if ('to' in job.data && testEmails.includes(job.data.to)) await job.remove()
+    if ('subject' in job.data && testEmails.includes(job.data.to)) await job.remove()
   }
   await prisma.$disconnect()
   await queue.close()

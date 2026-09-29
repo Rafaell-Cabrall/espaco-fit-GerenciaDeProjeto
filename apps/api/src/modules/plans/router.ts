@@ -11,6 +11,7 @@ import { type Request, Router } from 'express'
 import type { z } from 'zod'
 import { HttpError, validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
+import { notify } from '../../lib/push.ts'
 import { auth, hasActiveLink, requireLink, requireRole } from '../../middlewares/auth.ts'
 import { isOutdated } from '../anamnesis/router.ts'
 import { toExercise } from '../exercises/router.ts'
@@ -294,5 +295,11 @@ plansRouter.post('/:id/publish', validate(publishPlanSchema), async (req, res) =
       include,
     }),
   ])
+  // "Notificar aluno"
+  if (req.body.notify) {
+    await notify([plan.studentId], 'Ficha nova', `Sua ficha "${plan.name}" já está no app.`, {
+      planId: plan.id,
+    })
+  }
   res.json(await present(plan))
 })

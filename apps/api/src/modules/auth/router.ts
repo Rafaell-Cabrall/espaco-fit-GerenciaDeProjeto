@@ -1,6 +1,7 @@
 import {
   forgotPasswordSchema,
   loginSchema,
+  pushTokenSchema,
   refreshSchema,
   resetPasswordSchema,
   verifyResetCodeSchema,
@@ -27,6 +28,12 @@ authRouter.get('/me', auth, async (req, res) => {
 // "Sair da conta": invalida os tokens no servidor; o app apaga os tokens locais em seguida
 authRouter.post('/logout', auth, async (req, res) => {
   await service.logout(req.user.id)
+  res.status(204).end()
+})
+
+// Depois da permissão de notificação: o token do Expo deste aparelho
+authRouter.put('/push-token', auth, validate(pushTokenSchema), async (req, res) => {
+  await service.setPushToken(req.user.id, req.body.token)
   res.status(204).end()
 })
 

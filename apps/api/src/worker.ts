@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq'
 import { sendMail } from './lib/mail.ts'
+import { sendPush } from './lib/push.ts'
 import { connection, type Jobs } from './lib/queue.ts'
 
 const handlers: { [K in keyof Jobs]: (data: Jobs[K]) => Promise<void> } = {
@@ -7,6 +8,7 @@ const handlers: { [K in keyof Jobs]: (data: Jobs[K]) => Promise<void> } = {
     console.log('[worker] ping', data.at)
   },
   email: sendMail,
+  push: sendPush,
 }
 
 const worker = new Worker(

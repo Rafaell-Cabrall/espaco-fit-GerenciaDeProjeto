@@ -2,13 +2,14 @@
 import { Queue } from 'bullmq'
 import { env } from './env.ts'
 import type { Mail } from './mail.ts'
+import type { Push } from './push.ts'
 
 export const connection = { url: env.REDIS_URL }
 
 export type Jobs = {
   ping: { at: string }
   email: Mail
-  // 'push': { userId: string; title: string; body: string }   (sprint 2)
+  push: Push
   // 'daily-billing': Record<string, never>                     (sprint 4, RN06/RN07)
 }
 

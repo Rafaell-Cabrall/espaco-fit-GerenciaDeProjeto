@@ -10,6 +10,7 @@ import { type Request, Router } from 'express'
 import { z } from 'zod'
 import { HttpError, validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
+import { notify } from '../../lib/push.ts'
 import { auth, hasActiveLink, requireRole } from '../../middlewares/auth.ts'
 import { dayInSaoPaulo, streaks } from './frequency.ts'
 
@@ -218,6 +219,20 @@ sessionsRouter.post(
       data: { finishedAt: new Date(), exerciseNotes: req.body.notes },
       include,
     })
+    // RU03: o instrutor do vínculo ativo recebe o aviso da conclusão
+    const link = await prisma.link.findFirst({
+      where: { studentId: req.user.id, status: 'ACTIVE' },
+      select: { instructorId: true, student: { select: { name: true } } },
+    })
+    if (link) {
+      const { label, title } = finished.division
+      await notify(
+        [link.instructorId],
+        'Treino concluído',
+        `${link.student.name} concluiu o Treino ${label} — ${title}`,
+        { studentId: req.user.id, sessionId: finished.id },
+      )
+    }
     res.json(toSession(finished))
   },
 )

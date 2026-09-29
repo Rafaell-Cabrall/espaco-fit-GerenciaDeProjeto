@@ -72,6 +72,14 @@ export async function logout(id: string) {
   })
 }
 
+// Um aparelho, uma conta: o token sai de quem usou o celular antes
+export async function setPushToken(id: string, token: string) {
+  await prisma.$transaction([
+    prisma.user.updateMany({ where: { pushToken: token, NOT: { id } }, data: { pushToken: null } }),
+    prisma.user.update({ where: { id }, data: { pushToken: token } }),
+  ])
+}
+
 // O banco guarda só o hash: um vazamento do banco não entrega códigos válidos
 const hashCode = (code: string) => createHash('sha256').update(code).digest('hex')
 const RESEND_COOLDOWN_SEC = 60 // timer "Reenviar código em 00:59" do Figma
