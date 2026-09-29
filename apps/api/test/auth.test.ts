@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash, randomInt } from 'node:crypto'
 import { after, before, describe, it } from 'node:test'
 import { app } from '../src/app.ts'
+import { hashPassword } from '../src/lib/password.ts'
 import { prisma } from '../src/lib/prisma.ts'
 import { queue } from '../src/lib/queue.ts'
 import { redis } from '../src/lib/redis.ts'
@@ -30,8 +31,11 @@ const post = (path: string, body: unknown, token?: string) =>
   })
 const me = (token: string) =>
   fetch(`${base}/auth/me`, { headers: { authorization: `Bearer ${token}` } })
-const register = (e: string) =>
-  post('/auth/register', { name: 'Teste', email: e, password: 'Senha123', acceptedTerms: true })
+// Sem autocadastro: o usuário nasce no banco com senha conhecida
+const register = async (e: string) =>
+  prisma.user.create({
+    data: { name: 'Teste', email: e, passwordHash: await hashPassword('Senha123') },
+  })
 const login = (e: string, password = 'Senha123') => post('/auth/login', { email: e, password })
 const clearLimits = (e: string) =>
   redis.del(`rl:login:${e}`, `rl:forgot-cooldown:${e}`, `rl:forgot-hour:${e}`)
@@ -55,28 +59,30 @@ after(async () => {
 })
 
 describe('auth', () => {
-  it('registra, faz login e lê /me', async () => {
-    const reg = await register(email)
-    assert.equal(reg.status, 201)
-    const { user, accessToken } = await reg.json()
+  it('faz login e lê /me', async () => {
+    await register(email)
+    const res0 = await login(email)
+    assert.equal(res0.status, 200)
+    const { user, accessToken } = await res0.json()
     assert.equal(user.role, 'ALUNO')
-
-    assert.equal((await login(email)).status, 200)
 
     const res = await me(accessToken)
     assert.equal(res.status, 200)
     assert.equal((await res.json()).email, email)
   })
 
-  it('rejeita senha fraca e login inválido', async () => {
-    const weak = await post('/auth/register', {
-      name: 'X',
-      email: `w${email}`,
-      password: 'fraca',
+  it('rejeita login inválido', async () => {
+    assert.equal((await login(email, 'errada')).status, 401)
+  })
+
+  it('rota de autocadastro não existe mais', async () => {
+    const res = await post('/auth/register', {
+      name: 'Teste',
+      email: `x${email}`,
+      password: 'Senha123',
       acceptedTerms: true,
     })
-    assert.equal(weak.status, 400)
-    assert.equal((await login(email, 'errada')).status, 401)
+    assert.equal(res.status, 404)
   })
 
   it('bloqueia rota autenticada sem token', async () => {

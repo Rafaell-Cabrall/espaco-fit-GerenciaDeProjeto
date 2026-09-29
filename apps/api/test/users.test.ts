@@ -33,6 +33,12 @@ const call = (method: string, path: string, token: string, body?: unknown) =>
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 
+// Convites ficam na fila sem worker no teste; o e-mail é example.com, mas não deixamos lixo no Redis
+const inviteJob = async (to: string) =>
+  (await queue.getJobs(['waiting', 'delayed'])).find((j) => 'to' in j.data && j.data.to === to)
+
+const anamnesis = { birthDate: '1998-03-15', goal: 'Hipertrofia', conditions: 'Asma' }
+
 describe('users', () => {
   let admin: Awaited<ReturnType<typeof user>>
   let instrutor: Awaited<ReturnType<typeof user>>
@@ -46,6 +52,9 @@ describe('users', () => {
   })
 
   after(async () => {
+    const students = { where: { student: { email: { in: emails } } } }
+    for (const e of emails) await (await inviteJob(e))?.remove()
+    await prisma.link.deleteMany(students)
     await prisma.user.deleteMany({ where: { email: { in: emails } } })
     await prisma.$disconnect()
     await queue.close()
@@ -53,46 +62,67 @@ describe('users', () => {
     server.close()
   })
 
-  it('admin cria usuário que consegue fazer login', async () => {
-    const input = {
-      name: 'Ana Nova',
-      email: email('nova'),
-      password: 'Senha123',
-      role: 'INSTRUTOR',
-    }
+  it('admin convida: sem senha, código de 72 h e e-mail na fila', async () => {
+    const input = { name: 'Ana Nova', email: email('nova'), role: 'INSTRUTOR' }
     const res = await call('POST', '', admin.token, input)
     assert.equal(res.status, 201)
     const body = await res.json()
     assert.deepEqual(Object.keys(body).sort(), ['email', 'id', 'name', 'role'])
     assert.equal(body.role, 'INSTRUTOR')
 
+    const row = await prisma.user.findUniqueOrThrow({ where: { email: input.email } })
+    assert.match(row.resetCode ?? '', /^[0-9a-f]{64}$/)
+    const hours = ((row.resetCodeExpiresAt?.getTime() ?? 0) - Date.now()) / 3_600_000
+    assert.ok(hours > 71 && hours <= 72)
+    assert.match(JSON.stringify((await inviteJob(input.email))?.data), /primeiro acesso/)
+
     const login = await fetch(`${base}/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: input.email, password: input.password }),
+      body: JSON.stringify({ email: input.email, password: 'Senha123' }),
     })
-    assert.equal(login.status, 200)
+    assert.equal(login.status, 401)
 
     assert.equal((await call('POST', '', admin.token, input)).status, 409)
   })
 
+  it('instrutor cadastra aluno com anamnese e o vínculo nasce junto', async () => {
+    const res = await call('POST', '', instrutor.token, {
+      name: 'João Silva',
+      email: email('aluno'),
+      anamnesis,
+    })
+    assert.equal(res.status, 201)
+    const { id, role } = await res.json()
+    assert.equal(role, 'ALUNO')
+    const link = await prisma.link.findFirst({ where: { studentId: id, status: 'ACTIVE' } })
+    assert.equal(link?.instructorId, instrutor.id)
+    const row = await prisma.anamnesis.findUniqueOrThrow({ where: { studentId: id } })
+    assert.equal(row.consentAt, null)
+    assert.equal((row.answers as { conditions: string }).conditions, 'Asma')
+    assert.equal((row.answers as { cpf: string }).cpf, '')
+  })
+
+  it('instrutor não cria outro perfil nem aluno sem anamnese', async () => {
+    const semAnamnese = { name: 'Sem Anamnese', email: email('s') }
+    assert.equal((await call('POST', '', instrutor.token, semAnamnese)).status, 400)
+    const outroPerfil = { name: 'Hacker', email: email('x'), role: 'ADMIN', anamnesis }
+    assert.equal((await call('POST', '', instrutor.token, outroPerfil)).status, 403)
+    const instrutorComAnamnese = { name: 'Ana', email: email('y'), role: 'INSTRUTOR', anamnesis }
+    assert.equal((await call('POST', '', admin.token, instrutorComAnamnese)).status, 400)
+  })
+
   it('valida o body e o filtro de perfil', async () => {
-    const fraca = { name: 'Ana', email: email('fraca'), password: 'fraca', role: 'ALUNO' }
-    assert.equal((await call('POST', '', admin.token, fraca)).status, 400)
+    assert.equal((await call('POST', '', admin.token, { name: 'A', email: 'nao' })).status, 400)
     assert.equal((await call('GET', '?role=CHEFE', admin.token)).status, 400)
   })
 
-  it('lista filtrando por perfil', async () => {
+  it('lista filtrando por perfil; só admin lista', async () => {
     const res = await call('GET', '?role=INSTRUTOR', admin.token)
     assert.equal(res.status, 200)
     const list: { id: string; role: string }[] = await res.json()
     assert.ok(list.some((u) => u.id === instrutor.id))
     assert.ok(list.every((u) => u.role === 'INSTRUTOR'))
-  })
-
-  it('só admin acessa', async () => {
     assert.equal((await call('GET', '', instrutor.token)).status, 403)
-    const input = { name: 'Hacker', email: email('x'), password: 'Senha123', role: 'ADMIN' }
-    assert.equal((await call('POST', '', instrutor.token, input)).status, 403)
   })
 })

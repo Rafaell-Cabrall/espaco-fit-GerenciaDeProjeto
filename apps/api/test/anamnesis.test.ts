@@ -22,20 +22,20 @@ async function user(role: Role) {
   return { id: u.id, token: signAccess(u.id, role, 0) }
 }
 
-const call = (method: string, studentId: string, token: string, body?: unknown) =>
-  fetch(`${base}/anamnesis/${studentId}`, {
+// path = ":studentId" ou ":studentId/consent" etc.
+const call = (method: string, path: string, token: string, body?: unknown) =>
+  fetch(`${base}/anamnesis/${path}`, {
     method,
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 
 const answers = {
-  injuries: '',
-  fitnessLevel: 'Iniciante',
+  birthDate: '1998-03-15',
   goal: 'Hipertrofia',
-  weeklyFrequency: '3 dias',
   conditions: 'Asma',
-  consent: true,
+  daysPerWeek: 4,
+  minutesPerSession: 60,
 }
 
 describe('anamnese', () => {
@@ -66,28 +66,57 @@ describe('anamnese', () => {
     server.close()
   })
 
-  it('devolve null antes do primeiro acesso', async () => {
+  it('devolve null antes do cadastro', async () => {
     const res = await call('GET', aluno.id, aluno.token)
     assert.equal(res.status, 200)
     assert.equal(await res.json(), null)
   })
 
-  it('exige o consentimento', async () => {
-    const res = await call('PUT', aluno.id, aluno.token, { ...answers, consent: false })
-    assert.equal(res.status, 400)
+  it('instrutor com vínculo escreve; aluno, admin e sem vínculo não', async () => {
+    assert.equal((await call('PUT', aluno.id, aluno.token, answers)).status, 403)
+    assert.equal((await call('PUT', aluno.id, admin.token, answers)).status, 403)
+    assert.equal((await call('PUT', aluno.id, semVinculo.token, answers)).status, 403)
+    const res = await call('PUT', aluno.id, instrutor.token, answers)
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.equal(body.conditions, 'Asma')
+    assert.equal(body.cpf, '')
+    assert.equal(body.daysPerWeek, 4)
+    assert.equal(body.consentAt, null)
+    assert.equal(body.instructorNotes, '')
+    assert.equal(body.outdated, false)
   })
 
-  it('aluno responde e atualiza a própria anamnese', async () => {
-    const first = await call('PUT', aluno.id, aluno.token, answers)
-    assert.equal(first.status, 200)
-    const body = await first.json()
-    assert.equal(body.conditions, 'Asma')
-    assert.equal(body.outdated, false)
-    assert.ok(body.consentAt)
-    assert.equal('consent' in body, false)
+  it('recusa CPF e data inválidos', async () => {
+    const cpf = await call('PUT', aluno.id, instrutor.token, { ...answers, cpf: '123' })
+    assert.equal(cpf.status, 400)
+    const date = await call('PUT', aluno.id, instrutor.token, {
+      ...answers,
+      birthDate: '15/03/1998',
+    })
+    assert.equal(date.status, 400)
+  })
 
-    const second = await call('PUT', aluno.id, aluno.token, { ...answers, goal: 'Emagrecimento' })
-    assert.equal((await second.json()).goal, 'Emagrecimento')
+  it('só o próprio aluno consente (RN09)', async () => {
+    const path = `${aluno.id}/consent`
+    assert.equal((await call('POST', path, instrutor.token)).status, 403)
+    assert.equal((await call('POST', path, outroAluno.token)).status, 403)
+    const res = await call('POST', path, aluno.token)
+    assert.equal(res.status, 200)
+    assert.ok((await res.json()).consentAt)
+    // outro aluno ainda não tem anamnese cadastrada
+    assert.equal((await call('POST', `${outroAluno.id}/consent`, outroAluno.token)).status, 404)
+  })
+
+  it('observações do personal não mudam a data da anamnese', async () => {
+    const before = await (await call('GET', aluno.id, instrutor.token)).json()
+    const notes = { notes: 'Dor no joelho hoje' }
+    const res = await call('PUT', `${aluno.id}/notes`, instrutor.token, notes)
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.equal(body.instructorNotes, 'Dor no joelho hoje')
+    assert.equal(body.updatedAt, before.updatedAt)
+    assert.equal((await call('PUT', `${aluno.id}/notes`, aluno.token, notes)).status, 403)
   })
 
   it('instrutor com vínculo lê; sem vínculo, outro aluno e admin não', async () => {
@@ -95,12 +124,6 @@ describe('anamnese', () => {
     assert.equal((await call('GET', aluno.id, semVinculo.token)).status, 403)
     assert.equal((await call('GET', aluno.id, outroAluno.token)).status, 403)
     assert.equal((await call('GET', aluno.id, admin.token)).status, 403)
-  })
-
-  it('só o próprio aluno escreve', async () => {
-    assert.equal((await call('PUT', aluno.id, instrutor.token, answers)).status, 403)
-    assert.equal((await call('PUT', aluno.id, admin.token, answers)).status, 403)
-    assert.equal((await call('PUT', aluno.id, outroAluno.token, answers)).status, 403)
   })
 
   it('sinaliza vencida após 60 dias (RN04)', async () => {

@@ -1,102 +1,122 @@
-// Anamnese do primeiro acesso (RN05/RN09). O portão fica em app/(aluno)/_layout.tsx: só chega
-// aqui quem tem GET /anamnesis/:id == null. Rótulos e opções seguem Evolução > Anamnese.
-import {
-  anamnesisInputSchema,
-  anamnesisSchema,
-  FitnessLevel,
-  Goal,
-  WeeklyFrequency,
-} from '@espacofit/shared'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+// Consentimento do primeiro acesso (RN09). O instrutor preencheu a anamnese no cadastro; o aluno
+// confere e autoriza. O portão fica em app/(aluno)/_layout.tsx: só chega aqui quem tem consentAt null.
+import { type Anamnesis, anamnesisSchema } from '@espacofit/shared'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Text } from 'react-native'
+import { Text, View } from 'react-native'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 import { Checkbox } from '@/components/Checkbox'
-import { Field } from '@/components/Field'
-import { Choice } from './components/Choice'
 import { styles } from './styles'
+
+const brDate = (d: string) => d.split('-').reverse().join('/')
+
+// As 5 seções do Figma do instrutor ("Anamnese Completa"), com os mesmos rótulos
+const sections: [string, [string, (a: Anamnesis) => string | number | null][]][] = [
+  [
+    '1. Dados Pessoais',
+    [
+      ['Data de Nascimento', (a) => brDate(a.birthDate)],
+      ['Telefone', (a) => a.phone],
+      ['CPF', (a) => a.cpf],
+      ['Profissão', (a) => a.profession],
+    ],
+  ],
+  [
+    '2. Objetivos e Expectativas',
+    [
+      ['Principal Objetivo', (a) => [a.goal, a.goalDetails].filter(Boolean).join(' — ')],
+      ['Dias por semana', (a) => a.daysPerWeek],
+      ['Tempo disponível', (a) => a.minutesPerSession && `${a.minutesPerSession} min`],
+    ],
+  ],
+  [
+    '3. Histórico de Atividade Física',
+    [
+      ['Pratica ou praticou atividade física?', (a) => a.activityHistory],
+      ['Experiência com musculação', (a) => a.weightTrainingExperience],
+    ],
+  ],
+  [
+    '4. Histórico de Saúde e Clínico',
+    [
+      ['Doenças diagnosticadas', (a) => a.conditions],
+      ['Dores, tonturas ou falta de ar durante esforço', (a) => a.effortSymptoms],
+      ['Lesões atuais ou cirurgias recentes', (a) => a.injuries],
+      ['Medicamentos em uso contínuo', (a) => a.medications],
+      [
+        'Histórico familiar de doenças cardíacas graves antes dos 50 anos',
+        (a) => a.familyHeartHistory,
+      ],
+    ],
+  ],
+  [
+    '5. Hábitos de Vida',
+    [
+      ['Qualidade do sono', (a) => a.sleep],
+      ['Hidratação diária estimada', (a) => a.hydration],
+      ['Tabagismo / Consumo de álcool', (a) => a.smokingAlcohol],
+    ],
+  ],
+]
 
 export function AnamneseScreen() {
   const { user } = useAuth()
   const router = useRouter()
   const queryClient = useQueryClient()
-
-  const [injuries, setInjuries] = useState('')
-  const [conditions, setConditions] = useState('')
-  const [fitnessLevel, setFitnessLevel] = useState<FitnessLevel>()
-  const [goal, setGoal] = useState<Goal>()
-  const [weeklyFrequency, setWeeklyFrequency] = useState<WeeklyFrequency>()
   const [consent, setConsent] = useState(false)
 
-  const responder = useMutation({
+  // Mesma chave do portão: já vem do cache, sem outra requisição
+  const anamnese = useQuery({
+    queryKey: ['anamnesis', user?.id],
+    queryFn: () => api(`/anamnesis/${user?.id}`, anamnesisSchema.nullable()),
+    enabled: !!user,
+  })
+
+  const autorizar = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Sessão expirada')
-      // A API só devolve 400 "Dados inválidos": a mensagem por campo sai do schema aqui
-      const parsed = anamnesisInputSchema.safeParse({
-        injuries,
-        conditions,
-        fitnessLevel,
-        goal,
-        weeklyFrequency,
-        consent,
-      })
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message)
-      return api(`/anamnesis/${user.id}`, anamnesisSchema, { method: 'PUT', body: parsed.data })
+      if (!consent) throw new Error('Autorize o uso dos seus dados de saúde para continuar')
+      return api(`/anamnesis/${user.id}/consent`, anamnesisSchema, { method: 'POST' })
     },
-    // Preenche o cache que o portão lê: sem isso ele buscaria de novo e piscaria o formulário
+    // Preenche o cache que o portão lê: sem isso ele buscaria de novo e piscaria esta tela
     onSuccess: (anamnesis) => {
       queryClient.setQueryData(['anamnesis', user?.id], anamnesis)
       router.replace('/(aluno)/(tabs)')
     },
   })
 
+  const data = anamnese.data
   return (
     <AuthLayout
       hideBack
-      title="Antes de começar"
-      subtitle="Suas respostas são o que o instrutor usa para montar a sua ficha. Leva menos de um minuto."
-      error={responder.error?.message}
+      title="Confira sua avaliação"
+      subtitle="Estes são os dados que o seu instrutor registrou. Autorize o uso para liberar seus treinos."
+      error={autorizar.error?.message}
       footer={
         <Button
           title="Continuar"
-          onPress={() => responder.mutate()}
-          loading={responder.isPending}
+          onPress={() => autorizar.mutate()}
+          loading={autorizar.isPending}
         />
       }
     >
-      <Field
-        label="Lesões ou restrições"
-        placeholder="Ex: dor no ombro direito ao elevar o braço"
-        value={injuries}
-        onChangeText={setInjuries}
-        multiline
-        maxLength={500}
-      />
-      <Choice
-        label="Nível de condicionamento"
-        options={FitnessLevel.options}
-        value={fitnessLevel}
-        onChange={setFitnessLevel}
-      />
-      <Choice label="Objetivo principal" options={Goal.options} value={goal} onChange={setGoal} />
-      <Choice
-        label="Frequência semanal"
-        options={WeeklyFrequency.options}
-        value={weeklyFrequency}
-        onChange={setWeeklyFrequency}
-      />
-      <Field
-        label="Doenças preexistentes"
-        placeholder="Ex: asma, hipertensão, diabetes"
-        value={conditions}
-        onChangeText={setConditions}
-        multiline
-        maxLength={500}
-      />
+      {data &&
+        sections.map(([title, rows]) => (
+          <Card key={title}>
+            <Text style={styles.section}>{title}</Text>
+            {rows.map(([label, value]) => (
+              <View key={label} style={styles.row}>
+                <Text style={styles.label}>{label}</Text>
+                <Text style={styles.value}>{value(data) || '—'}</Text>
+              </View>
+            ))}
+          </Card>
+        ))}
       <Checkbox
         checked={consent}
         onChange={setConsent}
@@ -110,8 +130,7 @@ export function AnamneseScreen() {
         }
       />
       <Text style={styles.note}>
-        Os dois campos de texto são opcionais. Você pode atualizar tudo depois em Evolução {'>'}{' '}
-        Anamnese.
+        Algum dado errado? Fale com o seu instrutor: ele corrige na próxima avaliação.
       </Text>
     </AuthLayout>
   )

@@ -113,7 +113,11 @@ describe('fichas', () => {
   })
 
   it('cria rascunho que o aluno ainda não vê', async () => {
-    const res = await call('POST', '/plans', instrutor.token, { studentId: aluno.id, ...period, divisions })
+    const res = await call('POST', '/plans', instrutor.token, {
+      studentId: aluno.id,
+      ...period,
+      divisions,
+    })
     assert.equal(res.status, 201)
     draft = await res.json()
     assert.equal(draft.status, 'DRAFT')
@@ -242,7 +246,10 @@ describe('fichas', () => {
 
     const { id } = await created.json()
     const path = `/plans/templates/${id}`
-    const renamed = await call('PUT', path, instrutor.token, { name: `Iniciante ${run}`, divisions })
+    const renamed = await call('PUT', path, instrutor.token, {
+      name: `Iniciante ${run}`,
+      divisions,
+    })
     assert.equal((await renamed.json()).name, `Iniciante ${run}`)
     const alheio = { name: 'Alheio', divisions }
     assert.equal((await call('PUT', path, outroInstrutor.token, alheio)).status, 404)

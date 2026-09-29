@@ -13,9 +13,10 @@ const RESEND_SEC = 60 // mesmo cooldown da API
 
 export function VerificarCodigoScreen() {
   const router = useRouter()
-  const { email } = useLocalSearchParams<{ email: string }>()
+  const { email, primeiro } = useLocalSearchParams<{ email: string; primeiro?: string }>()
   const [code, setCode] = useState('')
-  const [left, setLeft] = useState(RESEND_SEC)
+  // Primeiro acesso: o convite pode ter chegado há dias, então "Reenviar" já nasce liberado
+  const [left, setLeft] = useState(primeiro ? 0 : RESEND_SEC)
 
   useEffect(() => {
     if (left <= 0) return
@@ -47,7 +48,10 @@ export function VerificarCodigoScreen() {
       title="Verifique seu e-mail"
       subtitle={
         <>
-          Enviamos um código de 6 dígitos para <Text style={styles.strong}>{email}</Text>
+          {primeiro
+            ? 'Digite o código de 6 dígitos do e-mail de convite enviado para '
+            : 'Enviamos um código de 6 dígitos para '}
+          <Text style={styles.strong}>{email}</Text>
         </>
       }
       error={verify.error?.message ?? resend.error?.message}

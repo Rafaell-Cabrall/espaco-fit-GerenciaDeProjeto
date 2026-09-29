@@ -2,7 +2,6 @@ import {
   forgotPasswordSchema,
   loginSchema,
   refreshSchema,
-  registerSchema,
   resetPasswordSchema,
   verifyResetCodeSchema,
 } from '@espacofit/shared'
@@ -12,10 +11,6 @@ import { auth } from '../../middlewares/auth.ts'
 import * as service from './service.ts'
 
 export const authRouter = Router()
-
-authRouter.post('/register', validate(registerSchema), async (req, res) => {
-  res.status(201).json(await service.register(req.body))
-})
 
 authRouter.post('/login', validate(loginSchema), async (req, res) => {
   res.json(await service.login(req.body))
