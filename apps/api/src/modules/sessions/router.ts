@@ -7,9 +7,11 @@ import {
 } from '@espacofit/shared'
 import type { Prisma } from '@prisma/client'
 import { type Request, Router } from 'express'
+import { z } from 'zod'
 import { HttpError, validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, hasActiveLink, requireRole } from '../../middlewares/auth.ts'
+import { dayInSaoPaulo, streaks } from './frequency.ts'
 
 // Itens da divisão com o nome do exercício: as notas saem com nome no Histórico e nos Feedbacks
 export const noteExercises = {
@@ -109,6 +111,30 @@ sessionsRouter.get('/', async (req, res) => {
     include,
   })
   res.json(rows.map(toSession))
+})
+
+// Sequência, treinos do mês e calendário. Mês sem treino devolve contagens zeradas.
+// ponytail: carrega todos os treinos finalizados do aluno (centenas no máximo) e calcula no JS
+sessionsRouter.get('/frequency', requireRole('ALUNO'), async (req, res) => {
+  const today = dayInSaoPaulo(new Date())
+  const month = z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, 'Mês no formato AAAA-MM')
+    .default(today.slice(0, 7))
+    .parse(req.query.month)
+  const rows = await prisma.workoutSession.findMany({
+    where: { studentId: req.user.id, finishedAt: { not: null } },
+    orderBy: { finishedAt: 'asc' },
+    select: { finishedAt: true },
+  })
+  const all = rows.flatMap((r) => (r.finishedAt ? [dayInSaoPaulo(r.finishedAt)] : []))
+  const inMonth = all.filter((d) => d.startsWith(month))
+  res.json({
+    ...streaks([...new Set(all)], today),
+    monthCount: inMonth.length,
+    totalCount: all.length,
+    days: [...new Set(inMonth)],
+  })
 })
 
 sessionsRouter.post('/', requireRole('ALUNO'), validate(startSessionSchema), async (req, res) => {

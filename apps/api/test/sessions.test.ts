@@ -182,6 +182,19 @@ describe('treino', () => {
     assert.deepEqual(await (await call('GET', '/sessions', outroAluno.token)).json(), [])
   })
 
+  it('frequência: sequência, mês e total', async () => {
+    const f = await (await call('GET', '/sessions/frequency', aluno.token)).json()
+    assert.equal(f.totalCount, 1)
+    assert.equal(f.currentStreak, 1)
+    assert.equal(f.bestStreak, 1)
+    assert.equal(f.monthCount, 1)
+    assert.equal(f.days.length, 1)
+    const empty = await (await call('GET', '/sessions/frequency?month=2000-01', aluno.token)).json()
+    assert.deepEqual([empty.monthCount, empty.days, empty.totalCount], [0, [], 1])
+    assert.equal((await call('GET', '/sessions/frequency?month=2026-9', aluno.token)).status, 400)
+    assert.equal((await call('GET', '/sessions/frequency', instrutor.token)).status, 403)
+  })
+
   it('instrutor com vínculo lê o histórico do aluno com filtros', async () => {
     await prisma.link.create({ data: { studentId: aluno.id, instructorId: instrutor.id } })
     const history = async (query: string, token = instrutor.token) =>
