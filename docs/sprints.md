@@ -57,10 +57,16 @@ Divisão por pessoa, datas e dependências: quadro da Sprint 1 no ClickUp. Front
 Demo: aluno finaliza treino, dá feedback, vê calendário e streak; instrutor entra no app, vê seus alunos, monta uma ficha a partir de modelo e recebe push quando o aluno conclui.
 
 **Back**
-- [ ] Feedback de esforço; dia só conta com ≥1 série (RN03); calendário de frequência e streak
-- [ ] Push ao instrutor na conclusão (job `push` via BullMQ + Expo Push); registro do token do dispositivo
-- [ ] `exercises`: cadastro pelo instrutor com upload de mídia
-- [ ] `measurements`: medidas corporais (API pronta para a Evolução da Sprint 3)
+- [x] Contratos da sprint em `packages/shared` antes das rotas, a partir do Figma do instrutor (29/09); rotas em [`docs/api/`](api/README.md)
+- [x] Cadastro por convite (sai o autocadastro): instrutor cadastra o aluno com a anamnese completa e o vínculo nasce junto; código de primeiro acesso por e-mail, válido por 72 h
+- [x] Anamnese pelo instrutor (5 seções do Figma), consentimento do aluno no primeiro acesso (RN09) e observações do personal
+- [x] Ficha com nome, período e dia da semana como rótulo; lista de fichas do aluno (atual e arquivadas); editar e apagar modelo; "Notificar aluno" ao publicar
+- [x] Instrutor: meus alunos (objetivo, idade, último treino), histórico do aluno com filtro por ficha e período
+- [x] Feedback = comentário por exercício no fim do treino, com lido/não lido para o instrutor (o esforço 1–5 saiu do protótipo); dia só conta com ≥1 série (RN03)
+- [x] Frequência: sequência atual, melhor sequência, treinos no mês e calendário
+- [x] Push ao instrutor na conclusão e ao aluno na ficha nova (job `push` via BullMQ + Expo Push); registro do token do dispositivo
+- [x] `exercises`: cadastro pelo instrutor com upload de GIF ou vídeo
+- Escopo movido para a Sprint 3: `measurements` (medidas corporais), junto com a agenda e a avaliação física, que chegaram no Figma do instrutor e usam o mesmo modelo
 
 **Front**
 - [ ] Aluno: tela de feedback pós-treino, pop-up de "nenhuma série concluída", calendário de frequência, streak na Home
@@ -85,6 +91,7 @@ Demo: treino executado sem internet e sincronizado depois; aba Evolução; feed 
 - [ ] Protótipo atualizado no Figma (aluno, instrutor, admin)
 
 **Back**
+- [ ] `measurements` e avaliação física (composição corporal e perímetros) + agenda de avaliações do instrutor (movido da Sprint 2)
 - [ ] `plans`: sinalizar ficha/anamnese > 60 dias (RN04) + job diário que notifica o instrutor
 - [ ] `feed`: comunicados com validade (admin escreve, todos leem)
 - [ ] `links`: troca de instrutor encerrando o vínculo antigo (RU07); filtrar instrutores inativos
