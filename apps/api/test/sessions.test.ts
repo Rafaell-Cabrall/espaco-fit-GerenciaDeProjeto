@@ -163,5 +163,13 @@ describe('treino', () => {
     assert.equal((await again.json()).finishedAt, done.finishedAt)
     assert.equal((await call('PUT', path, aluno.token, set)).status, 409)
     assert.equal((await call('DELETE', `/sessions/${s.id}`, aluno.token)).status, 409)
+
+    // Histórico só lista finalizados e só do próprio aluno
+    const history = await (await call('GET', '/sessions', aluno.token)).json()
+    assert.deepEqual(
+      history.map((h: { id: string }) => h.id),
+      [s.id],
+    )
+    assert.deepEqual(await (await call('GET', '/sessions', outroAluno.token)).json(), [])
   })
 })

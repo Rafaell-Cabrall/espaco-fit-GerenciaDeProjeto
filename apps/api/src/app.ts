@@ -1,6 +1,7 @@
 import cors from 'cors'
 import express from 'express'
 import { errorHandler } from './lib/http.ts'
+import { requestHost } from './lib/storage.ts'
 import { anamnesisRouter } from './modules/anamnesis/router.ts'
 import { authRouter } from './modules/auth/router.ts'
 import { billingRouter } from './modules/billing/router.ts'
@@ -16,6 +17,7 @@ export const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use((req, _res, next) => requestHost.run(req.hostname, next))
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

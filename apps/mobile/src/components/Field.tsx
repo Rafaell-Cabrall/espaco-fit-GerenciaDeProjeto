@@ -1,5 +1,6 @@
-// Rótulo + input do Figma. `secure` liga o botão de mostrar/ocultar senha.
+// Rótulo + input do Figma. `secure` liga o olho de mostrar/ocultar senha.
 // Com `multiline`, a caixa cresce em vez de manter a altura de uma linha.
+import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native'
 import { tokens } from '@/design-system/tokens'
@@ -23,8 +24,17 @@ export function Field({ label, secure, style, ...input }: Props) {
           {...input}
         />
         {secure && (
-          <Pressable onPress={() => setHidden(!hidden)} hitSlop={12} accessibilityRole="button">
-            <Text style={styles.toggle}>{hidden ? 'Mostrar' : 'Ocultar'}</Text>
+          <Pressable
+            onPress={() => setHidden(!hidden)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Mostrar senha' : 'Ocultar senha'}
+          >
+            <Ionicons
+              name={hidden ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={tokens.colors.textSecondary}
+            />
           </Pressable>
         )}
       </View>
@@ -55,5 +65,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   inputMultiline: { height: 'auto', textAlignVertical: 'top' },
-  toggle: { color: tokens.colors.textSecondary, fontFamily: tokens.fonts.regular, fontSize: 13 },
 })

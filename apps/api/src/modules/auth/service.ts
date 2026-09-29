@@ -2,6 +2,7 @@ import { createHash, randomInt } from 'node:crypto'
 import type { LoginInput, RegisterInput, Role } from '@espacofit/shared'
 import { HttpError } from '../../lib/http.ts'
 import { signAccess, signRefresh, verifyToken } from '../../lib/jwt.ts'
+import { codeMail } from '../../lib/mail.ts'
 import { hashPassword, verifyPassword } from '../../lib/password.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { enqueue } from '../../lib/queue.ts'
@@ -107,11 +108,17 @@ export async function forgotPassword(email: string) {
       resetCodeAttempts: 0,
     },
   })
-  await enqueue('email', {
-    to: email,
-    subject: 'Seu código de recuperação — Espaço Fit',
-    text: `Olá, ${user.name}!\n\nSeu código para redefinir a senha é ${code}. Ele vale por 10 minutos.\n\nSe você não pediu a troca de senha, ignore este e-mail.`,
-  })
+  await enqueue(
+    'email',
+    codeMail(
+      email,
+      `${code} é seu código de recuperação — Espaço Fit`,
+      user.name,
+      'Use o código abaixo no app para criar uma nova senha. Ele vale por 10 minutos.',
+      code,
+      'Se você não pediu a troca de senha, ignore este e-mail: sua senha continua a mesma.',
+    ),
+  )
 }
 
 // Verificar + redefinir gastam 2; sobram 3 erros de digitação antes de pedir "Reenviar código".

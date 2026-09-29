@@ -55,13 +55,13 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.border,
     backgroundColor: tokens.colors.surface,
   },
-  tabSelected: { backgroundColor: tokens.colors.primary, borderColor: tokens.colors.primary },
+  tabSelected: { backgroundColor: tokens.colors.accent, borderColor: tokens.colors.accent },
   label: {
     color: tokens.colors.textSecondary,
     fontFamily: tokens.fonts.medium,
     fontSize: tokens.fontSizes.sm,
   },
-  labelSelected: { color: tokens.colors.textPrimary, fontFamily: tokens.fonts.bold },
+  labelSelected: { color: tokens.colors.onPrimary, fontFamily: tokens.fonts.bold },
   badge: {
     paddingHorizontal: tokens.spacing.sm,
     paddingVertical: 2,

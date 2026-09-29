@@ -1,10 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   ImageBackground,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -61,7 +60,7 @@ export function LoginFormScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -74,19 +73,16 @@ export function LoginFormScreen() {
       setLoading(true)
       setErrorMsg(null)
 
-      await login({ email: email.trim().toLowerCase(), password })
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'E-mail ou senha inválidos')
+      await login({ email: email.trim().toLowerCase(), password }, rememberMe)
+    } catch (err) {
+      setErrorMsg((err as Error).message || 'E-mail ou senha inválidos')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>

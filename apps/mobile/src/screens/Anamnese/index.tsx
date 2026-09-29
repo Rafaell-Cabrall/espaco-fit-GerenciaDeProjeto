@@ -50,7 +50,7 @@ export function AnamneseScreen() {
     // Preenche o cache que o portão lê: sem isso ele buscaria de novo e piscaria o formulário
     onSuccess: (anamnesis) => {
       queryClient.setQueryData(['anamnesis', user?.id], anamnesis)
-      router.replace('/(aluno)')
+      router.replace('/(aluno)/(tabs)')
     },
   })
 

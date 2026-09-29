@@ -1,10 +1,10 @@
 import { Redirect, Stack } from 'expo-router'
-import { useAuth } from '@/auth'
+import { homeOf, useAuth } from '@/auth'
 
-// Sessão criada (login, ou app reaberto com token válido) tira o usuário do fluxo de autenticação:
-// "/" manda cada perfil para a sua home. Sem isto o login entra e a tela continua no formulário.
+// Sessão criada (login, ou app reaberto com token válido) tira o usuário do fluxo de autenticação
+// direto para a home do perfil. Sem isto o login entra e a tela continua no formulário.
 export default function Layout() {
   const { user } = useAuth()
-  if (user) return <Redirect href="/" />
+  if (user) return <Redirect href={homeOf(user)} />
   return <Stack screenOptions={{ headerShown: false }} />
 }

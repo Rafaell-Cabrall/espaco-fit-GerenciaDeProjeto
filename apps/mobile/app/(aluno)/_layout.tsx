@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Redirect, Stack, usePathname } from 'expo-router'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { api } from '@/api/client'
-import { useAuth } from '@/auth'
+import { homeOf, useAuth } from '@/auth'
 import { Button } from '@/components/Button'
 import { tokens } from '@/design-system/tokens'
 
@@ -23,7 +23,7 @@ export default function Layout() {
   if (user === undefined) return null
   // Deslogado vai direto para (auth): "/" daqui de dentro resolveria para o index deste grupo
   if (user === null) return <Redirect href="/(auth)" />
-  if (!isAluno) return <Redirect href="/" />
+  if (!isAluno) return <Redirect href={homeOf(user)} />
   if (anamnese.isPending)
     return (
       <View style={styles.center}>

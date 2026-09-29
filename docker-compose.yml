@@ -22,7 +22,8 @@ services:
     environment:
       MINIO_ROOT_USER: espacofit
       MINIO_ROOT_PASSWORD: espacofit123
-    ports: ['9000:9000', '9001:9001']
+    # 9100/9101 no host: o Hyper-V do Windows reserva faixas que às vezes cobrem 9000 e 9001
+    ports: ['9100:9000', '9101:9001']
     volumes: ['miniodata:/data']
 
   # cria o bucket "media" uma vez e sai

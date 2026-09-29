@@ -1,9 +1,14 @@
 // fetch + zod. Renova o access token uma vez em 401 usando o refresh token do SecureStore.
 import { authResponseSchema } from '@espacofit/shared'
+import Constants from 'expo-constants'
 import * as SecureStore from 'expo-secure-store'
 import type { ZodType } from 'zod'
 
-const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000'
+// Sem EXPO_PUBLIC_API_URL, a API é procurada na máquina que serve o Metro (hostUri = "IP:8081"):
+// o IP acompanha a rede sozinho. A URL explícita fica para apontar para outro servidor.
+const devHost = Constants.expoConfig?.hostUri?.split(':')[0] ?? 'localhost'
+const BASE =
+  process.env.EXPO_PUBLIC_API_URL || `http://${devHost}:${process.env.EXPO_PUBLIC_API_PORT || 3000}`
 
 export const tokens = {
   get: (k: 'access' | 'refresh') => SecureStore.getItemAsync(k),

@@ -3,15 +3,7 @@
 // O rodapé (botão) fica centralizado no espaço que sobra, como no Figma.
 import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { tokens } from '@/design-system/tokens'
 
@@ -37,10 +29,7 @@ export function AuthLayout({
   const router = useRouter()
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={inlineBack ? styles.headerRow : styles.header}>
             {!hideBack && (
