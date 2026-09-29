@@ -1,5 +1,5 @@
-// Home do aluno (Sprint 1): saudação, treino do dia (RN08) e histórico. Sequência, avisos e
-// contrato do Figma chegam com as APIs das Sprints 2 a 4.
+// Home do aluno: saudação, sequência, treino do dia (RN08) e histórico. Avisos e contrato do
+// Figma chegam com as APIs das Sprints 3 e 4.
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -13,7 +13,7 @@ import { SairModal } from '@/components/SairModal'
 import { Status } from '@/components/Status'
 import { Text } from '@/components/Text'
 import { tokens } from '@/design-system/tokens'
-import { useHistory } from '@/hooks/useHistory'
+import { useFrequency } from '@/hooks/useFrequency'
 import { usePlan } from '@/hooks/usePlan'
 import { styles } from './styles'
 
@@ -21,7 +21,7 @@ export function HomeAlunoScreen() {
   const { user } = useAuth()
   const router = useRouter()
   const plan = usePlan()
-  const history = useHistory()
+  const frequency = useFrequency()
   const [sair, setSair] = useState(false)
 
   if (plan.isPending) return <Status />
@@ -36,7 +36,8 @@ export function HomeAlunoScreen() {
     )
 
   const today = plan.data?.divisions.find((d) => d.id === plan.data?.todayDivisionId)
-  const treinos = history.data?.length
+  const treinos = frequency.data?.totalCount
+  const streak = frequency.data?.currentStreak
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -55,6 +56,20 @@ export function HomeAlunoScreen() {
             <Ionicons name="log-out-outline" size={20} color={tokens.colors.textPrimary} />
           </Pressable>
         </View>
+
+        <Card style={styles.streak}>
+          <View style={styles.streakIcon}>
+            <Ionicons name="flame" size={20} color={tokens.colors.primary} />
+          </View>
+          <View>
+            <Text variant="label">Sequência atual</Text>
+            <Text style={styles.tileTitle}>
+              {streak === undefined
+                ? '—'
+                : `${streak} ${streak === 1 ? 'dia consecutivo' : 'dias consecutivos'}`}
+            </Text>
+          </View>
+        </Card>
 
         {today ? (
           <Card style={styles.workout}>
