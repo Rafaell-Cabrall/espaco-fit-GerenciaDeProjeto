@@ -11,7 +11,7 @@ const FORGET = 'forget-session'
 // resolve "/" para o index do próprio grupo, e o layout redireciona de novo em laço.
 export const homeOf = (user: User | null) =>
   user
-    ? ({ ALUNO: '/(aluno)/(tabs)', INSTRUTOR: '/(instrutor)', ADMIN: '/(admin)' } as const)[
+    ? ({ ALUNO: '/(aluno)/(tabs)', INSTRUTOR: '/(instrutor)/(tabs)', ADMIN: '/(admin)' } as const)[
         user.role
       ]
     : '/(auth)'

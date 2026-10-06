@@ -1,5 +1,5 @@
-// Perfil do aluno (Sprint 1): identificação e sair. Contrato, conta, notificações e privacidade
-// do Figma entram com as APIs das Sprints 3 a 5.
+// Perfil (aluno e instrutor usam a mesma tela): identificação e sair. Contrato, conta, notificações e
+// privacidade do Figma entram com as APIs das Sprints 3 a 5.
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'

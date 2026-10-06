@@ -18,7 +18,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { Alert, KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { z } from 'zod'
-import { api } from '@/api/client'
+import { ApiError, api } from '@/api/client'
 import { Button } from '@/components/Button'
 import { ExerciseThumb } from '@/components/ExerciseThumb'
 import { Field } from '@/components/Field'
@@ -75,6 +75,17 @@ export function ExecucaoScreen() {
   const division = plan.data?.divisions.find((d) => d.id === divisionId)
   const doneCount = Object.values(done).filter(Boolean).length
 
+  // "Sair do treino": descarta a sessão aberta (RN03)
+  const discard = () => {
+    clearTimeout(restAlarm.current)
+    // Dentro da fila: a criação da sessão pode estar em voo e só existir depois dela
+    enqueue(async () => {
+      if (sessionId.current)
+        await api(`/sessions/${sessionId.current}`, z.undefined(), { method: 'DELETE' })
+    }).catch(() => {})
+    router.back()
+  }
+
   const finish = useMutation({
     mutationFn: () =>
       enqueue(async () => {
@@ -89,7 +100,7 @@ export function ExecucaoScreen() {
       clearTimeout(restAlarm.current)
       // Treino do dia avança para a próxima divisão (RN08) e a carga sugerida muda
       queryClient.invalidateQueries({ queryKey: ['plan'] })
-      queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['frequency'] })
       const ms = Date.parse(session.finishedAt ?? '') - Date.parse(session.startedAt)
       router.replace({
         pathname: '/(aluno)/treino/concluido',
@@ -101,7 +112,21 @@ export function ExecucaoScreen() {
         },
       })
     },
-    onError: (e) => Alert.alert('Não foi possível finalizar', e.message),
+    onError: (e) => {
+      // RN03: o botão só libera com série marcada, mas a série pode não ter chegado ao servidor
+      // (sem rede, ou desmarcada em outra tentativa). Aí o treino não conta: continuar ou sair.
+      if (e instanceof ApiError && e.status === 422) {
+        return Alert.alert(
+          'Nenhum exercício concluído',
+          'Nenhuma série foi registrada neste treino. Conclua ao menos uma série para contabilizar o treino ou saia sem salvar.',
+          [
+            { text: 'Continuar treino', style: 'cancel' },
+            { text: 'Sair do treino', style: 'destructive', onPress: discard },
+          ],
+        )
+      }
+      Alert.alert('Não foi possível finalizar', e.message)
+    },
   })
 
   if (plan.isPending) return <Status />
@@ -195,15 +220,6 @@ export function ExecucaoScreen() {
   }
 
   const leave = () => {
-    const discard = () => {
-      clearTimeout(restAlarm.current)
-      // Dentro da fila: a criação da sessão pode estar em voo e só existir depois dela
-      enqueue(async () => {
-        if (sessionId.current)
-          await api(`/sessions/${sessionId.current}`, z.undefined(), { method: 'DELETE' })
-      }).catch(() => {})
-      router.back()
-    }
     if (doneCount === 0) return discard()
     Alert.alert('Sair do treino?', 'As séries marcadas não serão contabilizadas.', [
       { text: 'Continuar treino', style: 'cancel' },
