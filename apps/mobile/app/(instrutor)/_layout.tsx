@@ -1,10 +1,11 @@
-import { Redirect, Stack } from 'expo-router'
-import { homeOf, useAuth } from '@/auth'
+import { Stack } from 'expo-router';
 
-// Guarda de perfil: só INSTRUTOR entra neste grupo.
-export default function Layout() {
-  const { user } = useAuth()
-  if (user === undefined) return null
-  if (user?.role !== 'INSTRUTOR') return <Redirect href={homeOf(user)} />
-  return <Stack screenOptions={{ headerShown: false }} />
+export default function InstructorLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    />
+  );
 }

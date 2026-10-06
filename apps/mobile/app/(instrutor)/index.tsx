@@ -1,3 +1,3 @@
-import { HomeInstrutorScreen } from '@/screens/HomeInstrutor'
+import HomeInstrutorScreen from '../../src/screens/HomeInstrutor'
 
 export default HomeInstrutorScreen
