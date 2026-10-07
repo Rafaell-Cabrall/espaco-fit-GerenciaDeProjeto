@@ -257,7 +257,11 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <Pressable accessibilityLabel="Voltar" style={styles.backButton} onPress={() => router.back()}>
+          <Pressable
+            accessibilityLabel="Voltar"
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Ionicons name="chevron-back" size={20} color={tokens.colors.textPrimary} />
           </Pressable>
           <TextInput
