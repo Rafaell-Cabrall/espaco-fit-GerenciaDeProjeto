@@ -1,0 +1,201 @@
+import { StyleSheet } from 'react-native'
+import { tokens } from '@/design-system/tokens'
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.background,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.border,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: tokens.colors.backgroundDark,
+  },
+  titleInput: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 16,
+    flex: 1,
+  },
+  saveButton: {
+    backgroundColor: tokens.colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 14,
+  },
+  weekDaysScroll: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  dayTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: tokens.colors.backgroundDark,
+    marginRight: 8,
+  },
+  dayTabActive: {
+    backgroundColor: tokens.colors.primary,
+  },
+  dayTabText: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 12,
+  },
+  dayTabTextActive: {
+    color: tokens.colors.textPrimary,
+  },
+  muscleScroll: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.border,
+  },
+  muscleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: tokens.colors.backgroundDark,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+    gap: 6,
+  },
+  muscleChipSelected: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: tokens.colors.primary,
+  },
+  muscleChipText: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.medium,
+    fontSize: 12,
+  },
+  muscleChipTextSelected: {
+    color: tokens.colors.primary,
+  },
+  content: {
+    padding: 20,
+    gap: 20,
+    paddingBottom: 40,
+  },
+  sectionBox: {
+    backgroundColor: tokens.colors.backgroundDark,
+    borderRadius: 16,
+    padding: 16,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 14,
+  },
+  removeText: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.regular,
+    fontSize: 12,
+  },
+  exerciseCard: {
+    backgroundColor: tokens.colors.background,
+    borderRadius: 12,
+    padding: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  exerciseTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  exerciseName: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 14,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  controlGroup: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  controlLabel: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.regular,
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  controlStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: tokens.colors.backgroundDark,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  stepperVal: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 14,
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  addExerciseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  addExerciseText: {
+    color: tokens.colors.primary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 13,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  emptyText: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.regular,
+    fontSize: 13,
+  },
+})
