@@ -297,27 +297,51 @@ export default function ResumoAlunoScreen() {
             <TouchableOpacity onPress={() => void plans.refetch()}>
               <Text style={styles.muted}>Erro ao carregar fichas. Tentar novamente.</Text>
             </TouchableOpacity>
-          ) : !plans.data?.length ? (
-            <Text style={styles.muted}>Nenhuma ficha cadastrada.</Text>
           ) : (
-            plans.data.map((plan) => (
-              <View key={plan.id} style={styles.card}>
-                {section(
-                  plan.name,
-                  <>
-                    {row(
-                      'Status',
-                      { ACTIVE: 'Ativa', DRAFT: 'Rascunho', EXPIRED: 'Encerrada' }[plan.status],
-                    )}
-                    {row(
-                      'Período',
-                      `${plan.startsOn.split('-').reverse().join('/')} — ${plan.endsOn.split('-').reverse().join('/')}`,
-                    )}
-                    {row('Divisões', plan.labels.join(' · '))}
-                  </>,
-                )}
-              </View>
-            ))
+            <>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={styles.save}
+                onPress={() =>
+                  router.push({ pathname: '/(instrutor)/ficha', params: { studentId } })
+                }
+              >
+                <Text style={styles.cardTitle}>Nova ficha</Text>
+              </TouchableOpacity>
+              {!plans.data.length && <Text style={styles.muted}>Nenhuma ficha cadastrada.</Text>}
+              {plans.data.map((plan) => (
+                <TouchableOpacity
+                  key={plan.id}
+                  accessibilityRole="button"
+                  style={styles.card}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(instrutor)/ficha',
+                      params: { studentId, planId: plan.id },
+                    })
+                  }
+                >
+                  {section(
+                    plan.name,
+                    <>
+                      {row(
+                        'Status',
+                        { ACTIVE: 'Ativa', DRAFT: 'Rascunho', EXPIRED: 'Encerrada' }[plan.status],
+                      )}
+                      {row(
+                        'Período',
+                        `${plan.startsOn.split('-').reverse().join('/')} — ${plan.endsOn.split('-').reverse().join('/')}`,
+                      )}
+                      {row('Divisões', plan.labels.join(' · '))}
+                      {row(
+                        'Ao tocar',
+                        plan.status === 'DRAFT' ? 'Editar rascunho' : 'Nova ficha a partir desta',
+                      )}
+                    </>,
+                  )}
+                </TouchableOpacity>
+              ))}
+            </>
           )
         ) : (
           <Historico key={studentId} studentId={studentId} instructorId={user?.id} />

@@ -1,0 +1,254 @@
+// styles.ts
+import { StyleSheet } from 'react-native'
+import { tokens } from '@/design-system/tokens'
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.background,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  title: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.regular,
+    fontSize: 14,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: tokens.colors.surface,
+    borderRadius: 30,
+    marginHorizontal: 20,
+    padding: 4,
+    marginBottom: 24,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 26,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: tokens.colors.primary,
+  },
+  tabText: {
+    fontFamily: tokens.fonts.regular,
+    fontSize: 14,
+    color: tokens.colors.textMuted,
+  },
+  tabTextActive: {
+    fontFamily: tokens.fonts.bold,
+    color: tokens.colors.textPrimary,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 24,
+  },
+  sectionTitle: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  medidasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  medidaCard: {
+    width: '48%',
+    backgroundColor: tokens.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    gap: 4,
+  },
+  medidaLabel: {
+    color: tokens.colors.textMuted,
+    fontSize: 14,
+    fontFamily: tokens.fonts.regular,
+  },
+  medidaValueRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  medidaValue: {
+    color: tokens.colors.textPrimary,
+    fontSize: 24,
+    fontFamily: tokens.fonts.bold,
+  },
+  medidaUnit: {
+    color: tokens.colors.textMuted,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  medidaHint: { color: tokens.colors.textMuted, fontSize: 12, marginTop: 4 },
+  metasCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    gap: 16,
+  },
+  metaItem: { gap: 8 },
+  metaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metaTitle: { color: tokens.colors.textPrimary, fontSize: 14 },
+  metaValue: { color: tokens.colors.textMuted, fontSize: 14 },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: tokens.colors.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: tokens.colors.primary,
+    borderRadius: 3,
+  },
+  anamnesisBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  anamnesisBannerText: {
+    color: '#D4AF37',
+    fontSize: 12,
+    fontFamily: tokens.fonts.bold,
+  },
+  anamnesisCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    gap: 16,
+  },
+  anamnesisRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  anamnesisLabel: {
+    color: tokens.colors.textMuted,
+    fontSize: 14,
+    flex: 1,
+  },
+  anamnesisVal: {
+    color: tokens.colors.textPrimary,
+    fontSize: 14,
+    fontFamily: tokens.fonts.bold,
+    textAlign: 'right',
+    flex: 1,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: tokens.colors.surface,
+    borderRadius: 16,
+    paddingVertical: 20,
+  },
+  statColumn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statBorder: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  statValue: {
+    color: tokens.colors.textPrimary,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 24,
+  },
+  statLabel: {
+    color: tokens.colors.textMuted,
+    fontSize: 10,
+    marginTop: 4,
+  },
+  calendarSection: { gap: 16 },
+  monthHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  monthTitle: {
+    color: tokens.colors.textMuted,
+    fontFamily: tokens.fonts.bold,
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  weekDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekDayText: {
+    color: tokens.colors.textMuted,
+    fontSize: 12,
+    width: '14.28%',
+    textAlign: 'center',
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    padding: 4,
+  },
+  dayBox: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayTrained: { borderColor: tokens.colors.primary },
+  dayMissed: { borderColor: tokens.colors.border },
+  dayText: {
+    color: tokens.colors.textMuted,
+    fontSize: 14,
+  },
+  dayTextTrained: { color: tokens.colors.primary },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+    marginTop: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    borderWidth: 1,
+  },
+  legendText: {
+    color: tokens.colors.textMuted,
+    fontSize: 12,
+  },
+})

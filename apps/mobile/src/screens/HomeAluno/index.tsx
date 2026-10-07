@@ -17,6 +17,9 @@ import { useFrequency } from '@/hooks/useFrequency'
 import { usePlan } from '@/hooks/usePlan'
 import { styles } from './styles'
 
+// Uma bolinha por dia da última semana de sequência
+const WEEK = [0, 1, 2, 3, 4, 5, 6]
+
 export function HomeAlunoScreen() {
   const { user } = useAuth()
   const router = useRouter()
@@ -38,9 +41,11 @@ export function HomeAlunoScreen() {
   const today = plan.data?.divisions.find((d) => d.id === plan.data?.todayDivisionId)
   const treinos = frequency.data?.totalCount
   const streak = frequency.data?.currentStreak
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text variant="label">Bom treino,</Text>
@@ -57,22 +62,37 @@ export function HomeAlunoScreen() {
           </Pressable>
         </View>
 
-        <Card style={styles.streak}>
-          <View style={styles.streakIcon}>
-            <Ionicons name="flame" size={20} color={tokens.colors.primary} />
+        {/* Streak Card */}
+        <View style={styles.streakCard}>
+          <View style={styles.streakInfo}>
+            <View style={styles.streakIcon}>
+              <Ionicons name="flame" size={20} color={tokens.colors.primary} />
+            </View>
+            <View>
+              <Text variant="label">Sequência atual</Text>
+              <Text style={styles.tileTitle}>
+                {streak === undefined
+                  ? '—'
+                  : streak === 0
+                    ? 'Nenhuma'
+                    : `${streak} ${streak === 1 ? 'dia consecutivo' : 'dias consecutivos'}`}
+              </Text>
+            </View>
           </View>
-          <View>
-            <Text variant="label">Sequência atual</Text>
-            <Text style={styles.tileTitle}>
-              {streak === undefined
-                ? '—'
-                : `${streak} ${streak === 1 ? 'dia consecutivo' : 'dias consecutivos'}`}
-            </Text>
-          </View>
-        </Card>
 
+          <View style={styles.streakDotsRow}>
+            {WEEK.map((n) => (
+              <View
+                key={n}
+                style={[styles.streakDot, n < (streak ?? 0) && styles.streakDotActive]}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* Workout Card */}
         {today ? (
-          <Card style={styles.workout}>
+          <View style={styles.workout}>
             <Image
               source={require('../../../assets/bg-academia.jpg')}
               style={styles.cover}
@@ -85,12 +105,14 @@ export function HomeAlunoScreen() {
                 </View>
                 <Text variant="label">Treino do dia</Text>
               </View>
+
               <Text variant="title">
                 Treino {today.label} — {today.title}
               </Text>
               <Text variant="label">
                 {today.exercises.length} exercícios · ~{today.estimatedMinutes} min estimado
               </Text>
+
               <View style={styles.action}>
                 <Button
                   title="Iniciar Treino"
@@ -103,7 +125,7 @@ export function HomeAlunoScreen() {
                 />
               </View>
             </View>
-          </Card>
+          </View>
         ) : (
           <Card>
             <Text variant="label">
@@ -113,16 +135,34 @@ export function HomeAlunoScreen() {
           </Card>
         )}
 
-        <View style={styles.row}>
-          <Card style={styles.tile}>
-            <View style={styles.tileIcon}>
-              <Ionicons name="reader" size={18} color={tokens.colors.accent} />
+        {/* Avisos e contrato sem API ainda (Sprints 3 e 4): o card não inventa dados */}
+        <View style={styles.avisoCard}>
+          <Text style={styles.avisoHeader}>Aviso da Academia</Text>
+          <Text style={styles.avisoText}>Os comunicados da academia vão aparecer aqui.</Text>
+        </View>
+
+        <View style={styles.tilesGrid}>
+          <View style={styles.tile}>
+            <View style={styles.tileIconContrato}>
+              <Ionicons name="wallet" size={16} color="#4ADE80" />
             </View>
-            <Text style={styles.tileTitle}>Histórico</Text>
-            <Text variant="label">
-              {treinos === undefined ? '—' : treinos === 1 ? '1 treino' : `${treinos} treinos`}
-            </Text>
-          </Card>
+            <View>
+              <Text style={styles.tileTitle}>Contrato</Text>
+              <Text variant="label">Em breve</Text>
+            </View>
+          </View>
+
+          <View style={styles.tile}>
+            <View style={styles.tileIconHistorico}>
+              <Ionicons name="reader" size={16} color={tokens.colors.accent} />
+            </View>
+            <View>
+              <Text style={styles.tileTitle}>Histórico</Text>
+              <Text variant="label">
+                {treinos === undefined ? '—' : treinos === 1 ? '1 treino' : `${treinos} treinos`}
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
       <SairModal visible={sair} onClose={() => setSair(false)} />

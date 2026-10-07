@@ -75,7 +75,8 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         : dailyEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
 
   const navigateTo = (path: string) => {
-    if (path === '/students') {
+    // Ficha nasce do aluno: Nova Ficha abre a lista, e a aba Fichas do aluno abre o editor
+    if (path === '/students' || path === '/workouts/new') {
       router.push('/(instrutor)/(tabs)/alunos' as RelativePathString)
       return
     }
