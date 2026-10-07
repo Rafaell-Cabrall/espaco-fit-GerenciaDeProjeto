@@ -19,6 +19,7 @@ import { useRouter, useFocusEffect, type RelativePathString } from 'expo-router'
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from '../../auth'
+import { dateKey, useAgenda } from '../Agenda/data'
 import { api } from '../../api/client'
 
 const workoutBg = require('../../../assets/workout-bg.jpg')
@@ -32,6 +33,9 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
   const router = useRouter()
   const { user, logout } = useAuth()
   const { width } = useWindowDimensions()
+  const agenda = useAgenda(user?.id)
+  const localEvaluations = agenda.data?.filter((entry) => entry.date === dateKey(new Date()))
+  const dailyEvaluations = todayEvaluations ?? localEvaluations ?? null
 
   const instructorName = user?.name?.trim() || 'Instrutor'
   const students = useQuery({
@@ -50,18 +54,17 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
   }, [students.refetch, feedbacks.refetch])
   useFocusEffect(useCallback(() => { refreshDashboard() }, [refreshDashboard]))
   const unreadFeedbacks = feedbacks.data?.filter((feedback) => !feedback.read).length
-  const activeTab = 'home' as 'home' | 'alunos' | 'fichas' | 'perfil'
-  const evaluationCount = todayEvaluations?.length
+  const evaluationCount = dailyEvaluations?.length
   const summaryTitle = evaluationCount == null
     ? 'Sua agenda de avaliações físicas'
     : evaluationCount === 0
       ? 'Você não tem avaliações físicas marcadas para hoje'
       : `Você tem ${evaluationCount} ${evaluationCount === 1 ? 'avaliação física marcada' : 'avaliações físicas marcadas'} para hoje`
-  const summarySubtitle = todayEvaluations == null
-    ? 'Os agendamentos estarão disponíveis em breve.'
-    : todayEvaluations.length === 0
+  const summarySubtitle = dailyEvaluations == null
+    ? agenda.isError ? 'Não foi possível carregar a agenda.' : 'Carregando agendamentos…'
+    : dailyEvaluations.length === 0
       ? 'Confira sua programação na agenda.'
-      : todayEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
+      : dailyEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
 
   const handleLogout = async () => {
     try {
@@ -74,6 +77,18 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
   }
 
   const navigateTo = (path: string) => {
+    if (path === '/students') {
+      router.push('/(instrutor)/(tabs)/alunos' as RelativePathString)
+      return
+    }
+    if (path === '/schedule') {
+      router.push('/(instrutor)/agenda' as RelativePathString)
+      return
+    }
+    if (path === '/students/new') {
+      router.push('/(instrutor)/students/new' as RelativePathString)
+      return
+    }
     // As demais telas do instrutor ainda não têm rotas no app.
     const labels: Record<string, string> = {
       '/students/new': 'Novo Aluno', '/workouts/new': 'Nova Ficha',
@@ -88,7 +103,7 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
   const iconBoxSize = isSmallDevice ? 32 : 36
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor="#0E0E0E" />
 
       <ScrollView
@@ -244,93 +259,6 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         </View>
       </ScrollView>
 
-      {/* Menu Inferior Fixo (TabBar do Figma) */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          onPress={refreshDashboard}
-          style={styles.tabItem}
-          activeOpacity={0.8}
-        >
-          <View style={styles.activeIndicator} />
-          <Ionicons
-            name="home"
-            size={20}
-            color={activeTab === 'home' ? '#E50914' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'home' ? '#E50914' : '#6B7280' },
-            ]}
-          >
-            Home
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            navigateTo('/students')
-          }}
-          style={styles.tabItem}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="people-outline"
-            size={20}
-            color={activeTab === 'alunos' ? '#E50914' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'alunos' ? '#E50914' : '#6B7280' },
-            ]}
-          >
-            Alunos
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            navigateTo('/workouts')
-          }}
-          style={styles.tabItem}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="document-text-outline"
-            size={20}
-            color={activeTab === 'fichas' ? '#E50914' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'fichas' ? '#E50914' : '#6B7280' },
-            ]}
-          >
-            Biblioteca
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => navigateTo('/profile')}
-          style={styles.tabItem}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="person-outline"
-            size={20}
-            color={activeTab === 'perfil' ? '#E50914' : '#6B7280'}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'perfil' ? '#E50914' : '#6B7280' },
-            ]}
-          >
-            Perfil
-          </Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   )
 }
@@ -515,33 +443,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 8,
     lineHeight: 15,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    minHeight: 60,
-    paddingTop: 10,
-    backgroundColor: '#121212',
-    borderTopWidth: 0.7,
-    borderTopColor: '#2A2A2A',
-    paddingBottom: 6,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: -10,
-    width: 22,
-    height: 2,
-    backgroundColor: '#E60012',
-  },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  tabText: {
-    fontSize: 10,
-    fontFamily: 'SpaceGrotesk_500Medium',
-    marginTop: 3,
   },
 })

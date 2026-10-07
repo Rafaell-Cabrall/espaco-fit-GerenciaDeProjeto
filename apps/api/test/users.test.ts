@@ -37,7 +37,7 @@ const call = (method: string, path: string, token: string, body?: unknown) =>
 const inviteJob = async (to: string) =>
   (await queue.getJobs(['waiting', 'delayed'])).find((j) => 'to' in j.data && j.data.to === to)
 
-const anamnesis = { birthDate: '1998-03-15', goal: 'Hipertrofia', conditions: 'Asma' }
+const anamnesis = { birthDate: '1998-03-15', goal: 'Hipertrofia', conditions: 'Asma', cpf: String(run).slice(-11) }
 
 describe('users', () => {
   let admin: Awaited<ReturnType<typeof user>>
@@ -100,7 +100,19 @@ describe('users', () => {
     const row = await prisma.anamnesis.findUniqueOrThrow({ where: { studentId: id } })
     assert.equal(row.consentAt, null)
     assert.equal((row.answers as { conditions: string }).conditions, 'Asma')
-    assert.equal((row.answers as { cpf: string }).cpf, '')
+    assert.equal((row.answers as { cpf: string }).cpf, anamnesis.cpf)
+  })
+
+  it('bloqueia CPF repetido com outro e-mail em cadastros simultâneos', async () => {
+    const cpf = String(run + 1).slice(-11)
+    const inputs = ['cpf-a', 'cpf-b'].map((tag) => ({
+      name: 'Aluno Duplicado', email: email(tag), anamnesis: { ...anamnesis, cpf },
+    }))
+    const responses = await Promise.all(inputs.map((input) => call('POST', '', instrutor.token, input)))
+    assert.deepEqual(responses.map((response) => response.status).sort(), [201, 409])
+    const rejected = responses.find((response) => response.status === 409)!
+    assert.equal((await rejected.json()).error, 'Já existe um aluno cadastrado com este CPF.')
+    assert.equal(await prisma.user.count({ where: { email: { in: inputs.map((input) => input.email) } } }), 1)
   })
 
   it('instrutor não cria outro perfil nem aluno sem anamnese', async () => {
