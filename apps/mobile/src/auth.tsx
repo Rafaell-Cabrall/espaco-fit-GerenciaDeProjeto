@@ -1,6 +1,6 @@
 // Sessão do usuário logado. `user === undefined` = ainda carregando.
 import { authResponseSchema, type LoginInput, type User, userSchema } from '@espacofit/shared'
-import { QueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import * as SecureStore from 'expo-secure-store'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import { api, tokens } from './api/client'
@@ -26,8 +26,7 @@ const Ctx = createContext<Auth | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined)
-  // Mantém a instância estável do QueryClient para evitar falhas do useQueryClient() na montagem inicial
-  const [queryClient] = useState(() => new QueryClient())
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     // "Lembrar Acesso" desmarcado: a sessão só vale até o app fechar, então morre na abertura

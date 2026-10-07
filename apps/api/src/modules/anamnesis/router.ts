@@ -3,9 +3,9 @@ import { anamnesisAnswersSchema, anamnesisNotesSchema } from '@espacofit/shared'
 import type { Anamnesis } from '@prisma/client'
 import { type Request, Router } from 'express'
 import { HttpError, validate } from '../../lib/http.ts'
-import { ensureAvailableCpf } from '../users/cpf.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, requireLink, requireRole } from '../../middlewares/auth.ts'
+import { ensureAvailableCpf } from '../users/cpf.ts'
 
 // RN04: anamnese e ficha vencem após 60 dias sem atualização
 export const isOutdated = (updatedAt: Date) =>

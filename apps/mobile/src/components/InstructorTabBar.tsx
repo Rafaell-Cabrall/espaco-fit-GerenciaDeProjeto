@@ -10,28 +10,59 @@ const items = [
   { label: 'Perfil', icon: 'person', route: '/(instrutor)/(tabs)/perfil' },
 ] as const
 
-export function InstructorTabBar({ active = 'Home', disabled = false, onNavigate }: { active?: string; disabled?: boolean; onNavigate?: () => void }) {
+export function InstructorTabBar({
+  active = 'Home',
+  disabled = false,
+  onNavigate,
+}: {
+  active?: string
+  disabled?: boolean
+  onNavigate?: () => void
+}) {
   const router = useRouter()
-  return <SafeAreaView edges={['bottom']} style={styles.container}>
-    <View style={styles.row}>
-      {items.map((item) => {
-        const selected = active === item.label
-        const color = selected ? '#E60012' : '#808080'
-        return <TouchableOpacity key={item.label} disabled={disabled} accessibilityRole="tab" accessibilityState={{ selected, disabled }} accessibilityLabel={item.label} style={styles.item}
-          onPress={() => { if (item.route) { onNavigate?.(); router.navigate(item.route) } else Alert.alert(item.label, 'Esta funcionalidade ainda não está disponível.') }}>
-          {selected && <View style={styles.indicator} />}
-          <Ionicons name={item.icon} size={22} color={color} />
-          <Text style={[styles.label, { color }]}>{item.label}</Text>
-        </TouchableOpacity>
-      })}
-    </View>
-  </SafeAreaView>
+  return (
+    <SafeAreaView edges={['bottom']} style={styles.container}>
+      <View style={styles.row}>
+        {items.map((item) => {
+          const selected = active === item.label
+          const color = selected ? '#E60012' : '#808080'
+          return (
+            <TouchableOpacity
+              key={item.label}
+              disabled={disabled}
+              accessibilityRole="tab"
+              accessibilityState={{ selected, disabled }}
+              accessibilityLabel={item.label}
+              style={styles.item}
+              onPress={() => {
+                if (item.route) {
+                  onNavigate?.()
+                  router.navigate(item.route)
+                } else Alert.alert(item.label, 'Esta funcionalidade ainda não está disponível.')
+              }}
+            >
+              {selected && <View style={styles.indicator} />}
+              <Ionicons name={item.icon} size={22} color={color} />
+              <Text style={[styles.label, { color }]}>{item.label}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
   container: { backgroundColor: '#0E0E0E', borderTopWidth: 1, borderTopColor: '#292929' },
   row: { flexDirection: 'row' },
-  item: { flex: 1, minHeight: 54, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  item: {
+    flex: 1,
+    minHeight: 54,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
   label: { fontFamily: 'SpaceGrotesk_500Medium', fontSize: 10 },
   indicator: { position: 'absolute', top: 0, width: 22, height: 2, backgroundColor: '#E60012' },
 })

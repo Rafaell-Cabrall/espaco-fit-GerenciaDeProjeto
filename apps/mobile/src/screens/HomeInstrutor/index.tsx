@@ -1,26 +1,26 @@
-import React, { useCallback } from 'react'
+import { feedbackSchema, studentLinkSchema } from '@espacofit/shared'
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
-import { studentLinkSchema, feedbackSchema } from '@espacofit/shared'
-import { z } from 'zod'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  RefreshControl,
-  StatusBar,
-  ImageBackground,
-  StyleSheet,
-  useWindowDimensions,
-} from 'react-native'
-import { useRouter, useFocusEffect, type RelativePathString } from 'expo-router'
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { type RelativePathString, useFocusEffect, useRouter } from 'expo-router'
+import { useCallback } from 'react'
+import {
+  Alert,
+  ImageBackground,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { z } from 'zod'
+import { api } from '../../api/client'
 import { useAuth } from '../../auth'
 import { dateKey, useAgenda } from '../Agenda/data'
-import { api } from '../../api/client'
 
 const workoutBg = require('../../../assets/workout-bg.jpg')
 
@@ -52,29 +52,27 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
     void students.refetch()
     void feedbacks.refetch()
   }, [students.refetch, feedbacks.refetch])
-  useFocusEffect(useCallback(() => { refreshDashboard() }, [refreshDashboard]))
+  useFocusEffect(
+    useCallback(() => {
+      refreshDashboard()
+    }, [refreshDashboard]),
+  )
   const unreadFeedbacks = feedbacks.data?.filter((feedback) => !feedback.read).length
   const evaluationCount = dailyEvaluations?.length
-  const summaryTitle = evaluationCount == null
-    ? 'Sua agenda de avaliações físicas'
-    : evaluationCount === 0
-      ? 'Você não tem avaliações físicas marcadas para hoje'
-      : `Você tem ${evaluationCount} ${evaluationCount === 1 ? 'avaliação física marcada' : 'avaliações físicas marcadas'} para hoje`
-  const summarySubtitle = dailyEvaluations == null
-    ? agenda.isError ? 'Não foi possível carregar a agenda.' : 'Carregando agendamentos…'
-    : dailyEvaluations.length === 0
-      ? 'Confira sua programação na agenda.'
-      : dailyEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
-
-  const handleLogout = async () => {
-    try {
-      await logout()
-    } catch (e) {
-      // Ignora erro no logout
-    } finally {
-      router.replace('/(auth)' as RelativePathString)
-    }
-  }
+  const summaryTitle =
+    evaluationCount == null
+      ? 'Sua agenda de avaliações físicas'
+      : evaluationCount === 0
+        ? 'Você não tem avaliações físicas marcadas para hoje'
+        : `Você tem ${evaluationCount} ${evaluationCount === 1 ? 'avaliação física marcada' : 'avaliações físicas marcadas'} para hoje`
+  const summarySubtitle =
+    dailyEvaluations == null
+      ? agenda.isError
+        ? 'Não foi possível carregar a agenda.'
+        : 'Carregando agendamentos…'
+      : dailyEvaluations.length === 0
+        ? 'Confira sua programação na agenda.'
+        : dailyEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
 
   const navigateTo = (path: string) => {
     if (path === '/students') {
@@ -91,9 +89,14 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
     }
     // As demais telas do instrutor ainda não têm rotas no app.
     const labels: Record<string, string> = {
-      '/students/new': 'Novo Aluno', '/workouts/new': 'Nova Ficha',
-      '/schedule': 'Agenda', '/payments': 'Pagamento', '/students': 'Alunos',
-      '/feedbacks': 'Feedbacks', '/workouts': 'Biblioteca', '/profile': 'Perfil',
+      '/students/new': 'Novo Aluno',
+      '/workouts/new': 'Nova Ficha',
+      '/schedule': 'Agenda',
+      '/payments': 'Pagamento',
+      '/students': 'Alunos',
+      '/feedbacks': 'Feedbacks',
+      '/workouts': 'Biblioteca',
+      '/profile': 'Perfil',
     }
     Alert.alert(labels[path] || 'Em breve', 'Esta funcionalidade ainda não está disponível.')
   }
@@ -107,8 +110,17 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
       <StatusBar barStyle="light-content" backgroundColor="#0E0E0E" />
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { maxWidth: 600, width: '100%', alignSelf: 'center' }]}
-        refreshControl={<RefreshControl refreshing={students.isRefetching || feedbacks.isRefetching} onRefresh={refreshDashboard} tintColor="#E60012" />}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { maxWidth: 600, width: '100%', alignSelf: 'center' },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={students.isRefetching || feedbacks.isRefetching}
+            onRefresh={refreshDashboard}
+            tintColor="#E60012"
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Topo: Saudação + Botão Logout */}
@@ -120,7 +132,9 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
             </Text>
           </View>
           <TouchableOpacity
-            accessibilityLabel="Sair da conta" onPress={handleLogout}
+            accessibilityLabel="Sair da conta"
+            // A guarda de (instrutor)/_layout leva para o login quando user vira null
+            onPress={logout}
             style={styles.logoutButton}
             activeOpacity={0.7}
           >
@@ -197,12 +211,8 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
             >
               <View style={{ marginBottom: 16 }}>
                 <Text style={styles.summaryTag}>Resumo do Dia</Text>
-                <Text style={styles.cardTitle}>
-                  {summaryTitle}
-                </Text>
-                <Text style={styles.cardSubtitle}>
-                  {summarySubtitle}
-                </Text>
+                <Text style={styles.cardTitle}>{summaryTitle}</Text>
+                <Text style={styles.cardSubtitle}>{summarySubtitle}</Text>
               </View>
 
               <TouchableOpacity
@@ -220,9 +230,7 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         <View style={styles.noticeCard}>
           <Text style={styles.noticeTag}>AVISO DA ACADEMIA</Text>
           <Text style={styles.noticeTitle}>Avisos da academia</Text>
-          <Text style={styles.noticeText}>
-            Os comunicados estarão disponíveis em breve.
-          </Text>
+          <Text style={styles.noticeText}>Os comunicados estarão disponíveis em breve.</Text>
         </View>
 
         {/* Métricas do Rodapé Responsivas */}
@@ -236,7 +244,13 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
               <Ionicons name="people" size={18} color="#22C55E" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.metricValue}>{students.isPending ? 'Carregando…' : students.isError ? 'Indisponível' : `Total: ${students.data.length}`}</Text>
+              <Text style={styles.metricValue}>
+                {students.isPending
+                  ? 'Carregando…'
+                  : students.isError
+                    ? 'Indisponível'
+                    : `Total: ${students.data.length}`}
+              </Text>
               <Text style={[styles.metricLabel, { color: '#22C55E' }]}>Alunos Ativos</Text>
             </View>
           </TouchableOpacity>
@@ -252,13 +266,16 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
             <View style={{ flex: 1 }}>
               <Text style={styles.metricValue}>Feedbacks</Text>
               <Text style={styles.metricLabel}>
-                {feedbacks.isPending ? 'Carregando…' : feedbacks.isError ? 'Não foi possível carregar' : `${unreadFeedbacks} ${unreadFeedbacks === 1 ? 'comentário não lido' : 'comentários não lidos'}`}
+                {feedbacks.isPending
+                  ? 'Carregando…'
+                  : feedbacks.isError
+                    ? 'Não foi possível carregar'
+                    : `${unreadFeedbacks} ${unreadFeedbacks === 1 ? 'comentário não lido' : 'comentários não lidos'}`}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
       </ScrollView>
-
     </SafeAreaView>
   )
 }

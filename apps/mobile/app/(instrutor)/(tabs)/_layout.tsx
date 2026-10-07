@@ -1,5 +1,5 @@
-import { InstructorTabBar } from '@/components/InstructorTabBar'
 import { Tabs } from 'expo-router'
+import { InstructorTabBar } from '@/components/InstructorTabBar'
 import { tokens } from '@/design-system/tokens'
 
 // Barra inferior do Figma do instrutor: Home, Alunos, Biblioteca e Perfil. Alunos e Biblioteca
@@ -8,7 +8,17 @@ import { tokens } from '@/design-system/tokens'
 export default function Layout() {
   return (
     <Tabs
-      tabBar={({ state }) => <InstructorTabBar active={state.routes[state.index]?.name === 'perfil' ? 'Perfil' : state.routes[state.index]?.name === 'alunos' ? 'Alunos' : 'Home'} />}
+      tabBar={({ state }) => (
+        <InstructorTabBar
+          active={
+            state.routes[state.index]?.name === 'perfil'
+              ? 'Perfil'
+              : state.routes[state.index]?.name === 'alunos'
+                ? 'Alunos'
+                : 'Home'
+          }
+        />
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: tokens.colors.primary,

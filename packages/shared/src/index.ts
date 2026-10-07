@@ -135,20 +135,25 @@ export type Anamnesis = z.infer<typeof anamnesisSchema>
 
 // ---------- users e links ----------
 
-// POST /users, sem senha: o convidado recebe um código de 6 dígitos por e-mail (vale 72 h) e cria a
-// senha em "Primeiro acesso". Admin cria qualquer perfil. Instrutor cria só ALUNO, com a anamnese
-// completa, e o vínculo com ele nasce junto ("Novo Aluno" → "Cadastrar Aluno").
 // Normaliza o nome no contrato usado pelo app e pela API, para todos os perfis.
 export function formatPersonName(name: string): string {
   const particles = new Set(['de', 'da', 'do', 'das', 'dos', 'e'])
-  return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR')
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('pt-BR')
     .split(' ')
-    .map((part, index) => index > 0 && particles.has(part)
-      ? part
-      : part.replace(/(^|[-'’])\p{L}/gu, (letter) => letter.toLocaleUpperCase('pt-BR')))
+    .map((part, index) =>
+      index > 0 && particles.has(part)
+        ? part
+        : part.replace(/(^|[-'’])\p{L}/gu, (letter) => letter.toLocaleUpperCase('pt-BR')),
+    )
     .join(' ')
 }
 
+// POST /users, sem senha: o convidado recebe um código de 6 dígitos por e-mail (vale 72 h) e cria a
+// senha em "Primeiro acesso". Admin cria qualquer perfil. Instrutor cria só ALUNO, com a anamnese
+// completa, e o vínculo com ele nasce junto ("Novo Aluno" → "Cadastrar Aluno").
 export const createUserSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome completo').transform(formatPersonName),
   email,

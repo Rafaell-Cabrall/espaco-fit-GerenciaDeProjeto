@@ -2,7 +2,11 @@ import type { Prisma } from '@prisma/client'
 import { HttpError } from '../../lib/http.ts'
 
 // Trava por CPF até o fim da transação, inclusive em cadastros simultâneos.
-export async function ensureAvailableCpf(tx: Prisma.TransactionClient, cpf: string, studentId?: string) {
+export async function ensureAvailableCpf(
+  tx: Prisma.TransactionClient,
+  cpf: string,
+  studentId?: string,
+) {
   if (!cpf) return
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`student-cpf:${cpf}`}))::text`
   const matches = await tx.$queryRaw<{ studentId: string }[]>`

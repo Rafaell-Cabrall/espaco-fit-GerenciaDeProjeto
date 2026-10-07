@@ -6,8 +6,8 @@ import { HttpError, validate } from '../../lib/http.ts'
 import { hashPassword } from '../../lib/password.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, requireRole } from '../../middlewares/auth.ts'
-import { ensureAvailableCpf } from './cpf.ts'
 import { sendInvite } from '../auth/service.ts'
+import { ensureAvailableCpf } from './cpf.ts'
 
 const select = { id: true, name: true, email: true, role: true } as const
 
