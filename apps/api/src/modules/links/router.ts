@@ -57,6 +57,7 @@ linksRouter.get('/', requireRole('ADMIN', 'INSTRUTOR'), async (req, res) => {
         select: {
           id: true,
           name: true,
+          email: true,
           anamnesis: { select: { answers: true } },
           sessions: {
             where: { finishedAt: { not: null } },

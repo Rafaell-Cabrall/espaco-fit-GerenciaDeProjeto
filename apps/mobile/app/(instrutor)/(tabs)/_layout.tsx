@@ -1,11 +1,24 @@
-import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
+import { InstructorTabBar } from '@/components/InstructorTabBar'
 import { tokens } from '@/design-system/tokens'
 
-// Barra inferior do instrutor: Home, Alunos, Biblioteca e Perfil.
+// Barra inferior do Figma do instrutor: Home, Alunos, Biblioteca e Perfil. Alunos e Biblioteca
+// entram aqui junto com as telas (Meus Alunos e Biblioteca de Treinos): um Tabs.Screen cada,
+// na ordem do Figma, com o arquivo em app/(instrutor)/(tabs)/.
 export default function Layout() {
   return (
     <Tabs
+      tabBar={({ state }) => (
+        <InstructorTabBar
+          active={
+            state.routes[state.index]?.name === 'perfil'
+              ? 'Perfil'
+              : state.routes[state.index]?.name === 'alunos'
+                ? 'Alunos'
+                : 'Home'
+          }
+        />
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: tokens.colors.primary,
@@ -21,29 +34,13 @@ export default function Layout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
         }}
       />
-      <Tabs.Screen
-        name="alunos"
-        options={{
-          title: 'Alunos',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="biblioteca"
-        options={{
-          title: 'Biblioteca',
-          // O ícone 'journal' ou 'library' costuma encaixar bem neste contexto
-          tabBarIcon: ({ color, size }) => <Ionicons name="journal" color={color} size={size} />,
-        }}
-      />
+      <Tabs.Screen name="alunos" options={{ title: 'Alunos' }} />
       <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
         }}
       />
     </Tabs>

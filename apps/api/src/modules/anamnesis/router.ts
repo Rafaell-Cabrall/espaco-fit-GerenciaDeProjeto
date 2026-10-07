@@ -5,6 +5,7 @@ import { type Request, Router } from 'express'
 import { HttpError, validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, requireLink, requireRole } from '../../middlewares/auth.ts'
+import { ensureAvailableCpf } from '../users/cpf.ts'
 
 // RN04: anamnese e ficha vencem após 60 dias sem atualização
 export const isOutdated = (updatedAt: Date) =>
@@ -51,10 +52,13 @@ anamnesisRouter.put(
   validate(anamnesisAnswersSchema),
   async (req, res) => {
     const studentId = req.params.studentId as string
-    const row = await prisma.anamnesis.upsert({
-      where: { studentId },
-      create: { studentId, answers: req.body },
-      update: { answers: req.body },
+    const row = await prisma.$transaction(async (tx) => {
+      await ensureAvailableCpf(tx, req.body.cpf, studentId)
+      return tx.anamnesis.upsert({
+        where: { studentId },
+        create: { studentId, answers: req.body },
+        update: { answers: req.body },
+      })
     })
     res.json(toResponse(row))
   },
