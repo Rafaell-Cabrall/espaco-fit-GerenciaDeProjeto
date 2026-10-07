@@ -1,3 +1,5 @@
+// Home do aluno: saudação, sequência, treino do dia (RN08) e histórico. Avisos e contrato do
+// Figma chegam com as APIs das Sprints 3 e 4.
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -14,6 +16,9 @@ import { tokens } from '@/design-system/tokens'
 import { useFrequency } from '@/hooks/useFrequency'
 import { usePlan } from '@/hooks/usePlan'
 import { styles } from './styles'
+
+// Uma bolinha por dia da última semana de sequência
+const WEEK = [0, 1, 2, 3, 4, 5, 6]
 
 export function HomeAlunoScreen() {
   const { user } = useAuth()
@@ -35,15 +40,11 @@ export function HomeAlunoScreen() {
 
   const today = plan.data?.divisions.find((d) => d.id === plan.data?.todayDivisionId)
   const treinos = frequency.data?.totalCount
-  const streak = frequency.data?.currentStreak ?? 0
-
-  // Gera array de 7 posições para as bolinhas do streak
-  const streakDots = Array.from({ length: 7 }).map((_, i) => i < Math.min(streak, 7))
+  const streak = frequency.data?.currentStreak
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -70,16 +71,20 @@ export function HomeAlunoScreen() {
             <View>
               <Text variant="label">Sequência atual</Text>
               <Text style={styles.tileTitle}>
-                {streak === 0 ? 'Nenhuma' : `${streak} ${streak === 1 ? 'dia consecutivo' : 'dias consecutivos'}`}
+                {streak === undefined
+                  ? '—'
+                  : streak === 0
+                    ? 'Nenhuma'
+                    : `${streak} ${streak === 1 ? 'dia consecutivo' : 'dias consecutivos'}`}
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.streakDotsRow}>
-            {streakDots.map((isActive, idx) => (
-              <View 
-                key={idx} 
-                style={[styles.streakDot, isActive && styles.streakDotActive]} 
+            {WEEK.map((n) => (
+              <View
+                key={n}
+                style={[styles.streakDot, n < (streak ?? 0) && styles.streakDotActive]}
               />
             ))}
           </View>
@@ -100,14 +105,14 @@ export function HomeAlunoScreen() {
                 </View>
                 <Text variant="label">Treino do dia</Text>
               </View>
-              
+
               <Text variant="title">
                 Treino {today.label} — {today.title}
               </Text>
               <Text variant="label">
                 {today.exercises.length} exercícios · ~{today.estimatedMinutes} min estimado
               </Text>
-              
+
               <View style={styles.action}>
                 <Button
                   title="Iniciar Treino"
@@ -124,42 +129,32 @@ export function HomeAlunoScreen() {
         ) : (
           <Card>
             <Text variant="label">
-              Sua ficha ainda não foi publicada. Assim que o instrutor montar seus treinos, o treino do dia aparece aqui.
+              Sua ficha ainda não foi publicada. Assim que o instrutor montar seus treinos, o treino
+              do dia aparece aqui.
             </Text>
           </Card>
         )}
 
-        {/* Aviso da Academia (Placeholder Sprint 3/4) */}
+        {/* Avisos e contrato sem API ainda (Sprints 3 e 4): o card não inventa dados */}
         <View style={styles.avisoCard}>
           <Text style={styles.avisoHeader}>Aviso da Academia</Text>
-          <Text style={styles.avisoTitle}>🎉 Promoção de Setembro</Text>
-          <Text style={styles.avisoText}>
-            Indique um amigo e ganhe 1 mês grátis! Válido até 30/09.
-          </Text>
-          <View style={styles.carouselDots}>
-            <View style={styles.carouselDotActive} />
-            <View style={styles.carouselDot} />
-            <View style={styles.carouselDot} />
-          </View>
+          <Text style={styles.avisoText}>Os comunicados da academia vão aparecer aqui.</Text>
         </View>
 
-        {/* Bottom Tiles: Contrato e Histórico */}
         <View style={styles.tilesGrid}>
-          {/* Tile Contrato (Placeholder Sprint 3/4) */}
           <View style={styles.tile}>
             <View style={styles.tileIconContrato}>
               <Ionicons name="wallet" size={16} color="#4ADE80" />
             </View>
             <View>
-              <Text style={styles.tileTitle}>Contrato Ativo</Text>
-              <Text style={styles.tileSubtitleContrato}>Renovar em 18 dias</Text>
+              <Text style={styles.tileTitle}>Contrato</Text>
+              <Text variant="label">Em breve</Text>
             </View>
           </View>
 
-          {/* Tile Histórico (API já plugada) */}
           <View style={styles.tile}>
             <View style={styles.tileIconHistorico}>
-              <Ionicons name="reader" size={16} color={tokens.colors.accent || '#D4AF37'} />
+              <Ionicons name="reader" size={16} color={tokens.colors.accent} />
             </View>
             <View>
               <Text style={styles.tileTitle}>Histórico</Text>
@@ -169,7 +164,6 @@ export function HomeAlunoScreen() {
             </View>
           </View>
         </View>
-
       </ScrollView>
       <SairModal visible={sair} onClose={() => setSair(false)} />
     </SafeAreaView>

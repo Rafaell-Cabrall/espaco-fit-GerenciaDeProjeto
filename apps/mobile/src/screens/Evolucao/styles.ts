@@ -25,7 +25,7 @@ export const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     borderRadius: 30,
     marginHorizontal: 20,
     padding: 4,
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
   },
   medidaCard: {
     width: '48%',
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     borderRadius: 16,
     padding: 16,
     gap: 4,
@@ -94,10 +94,9 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
-  medidaDiffPositive: { color: tokens.colors.success, fontSize: 12, marginTop: 4 },
-  medidaDiffNegative: { color: tokens.colors.primary, fontSize: 12, marginTop: 4 },
+  medidaHint: { color: tokens.colors.textMuted, fontSize: 12, marginTop: 4 },
   metasCard: {
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     borderRadius: 16,
     padding: 20,
     gap: 16,
@@ -120,19 +119,6 @@ export const styles = StyleSheet.create({
     backgroundColor: tokens.colors.primary,
     borderRadius: 3,
   },
-  btnOutline: {
-    borderWidth: 1,
-    borderColor: tokens.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  btnOutlineText: {
-    color: tokens.colors.primary,
-    fontFamily: tokens.fonts.bold,
-    fontSize: 14,
-  },
   anamnesisBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -149,7 +135,7 @@ export const styles = StyleSheet.create({
     fontFamily: tokens.fonts.bold,
   },
   anamnesisCard: {
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     borderRadius: 16,
     padding: 20,
     gap: 16,
@@ -173,7 +159,7 @@ export const styles = StyleSheet.create({
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     borderRadius: 16,
     paddingVertical: 20,
   },
@@ -198,19 +184,12 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   calendarSection: { gap: 16 },
-  calendarSection: { gap: 16 },
   monthHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 8,
     marginBottom: 8,
-  },
-  monthTitle: {
-    color: tokens.colors.textMuted,
-    fontFamily: tokens.fonts.bold,
-    fontSize: 12,
-    letterSpacing: 1,
   },
   monthTitle: {
     color: tokens.colors.textMuted,

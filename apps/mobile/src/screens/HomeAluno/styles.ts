@@ -18,17 +18,17 @@ export const styles = StyleSheet.create({
     marginTop: 16,
   },
   logout: {
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     padding: 10,
     borderRadius: 20,
   },
-  
+
   // Streak
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     padding: 16,
     borderRadius: 16,
   },
@@ -50,7 +50,7 @@ export const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: tokens.colors.borderDark, // Bolinha inativa
+    backgroundColor: tokens.colors.border, // Bolinha inativa
   },
   streakDotActive: {
     backgroundColor: tokens.colors.primary, // Bolinha ativa (vermelha/laranja)
@@ -60,7 +60,7 @@ export const styles = StyleSheet.create({
   workout: {
     overflow: 'hidden',
     borderRadius: 16,
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     padding: 0,
     borderWidth: 0,
   },
@@ -96,7 +96,7 @@ export const styles = StyleSheet.create({
 
   // Avisos (Sprint 3/4)
   avisoCard: {
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     padding: 16,
     borderRadius: 16,
     gap: 4,
@@ -109,11 +109,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 4,
   },
-  avisoTitle: {
-    color: tokens.colors.textPrimary,
-    fontFamily: tokens.fonts.bold,
-    fontSize: 14,
-  },
   avisoText: {
     color: tokens.colors.textMuted,
     fontFamily: tokens.fonts.regular,
@@ -121,25 +116,6 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
-  carouselDots: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: 8,
-  },
-  carouselDotActive: {
-    width: 12,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: tokens.colors.primary,
-  },
-  carouselDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: tokens.colors.borderDark,
-  },
-
   // Tiles Grid (Contrato e Histórico)
   tilesGrid: {
     flexDirection: 'row',
@@ -147,7 +123,7 @@ export const styles = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    backgroundColor: tokens.colors.backgroundDark,
+    backgroundColor: tokens.colors.surface,
     padding: 16,
     borderRadius: 16,
     gap: 8,
@@ -174,10 +150,5 @@ export const styles = StyleSheet.create({
     color: tokens.colors.textPrimary,
     fontFamily: tokens.fonts.bold,
     fontSize: 14,
-  },
-  tileSubtitleContrato: {
-    color: '#4ADE80', // Verde
-    fontFamily: tokens.fonts.regular,
-    fontSize: 12,
   },
 })
