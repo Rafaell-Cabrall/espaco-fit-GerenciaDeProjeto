@@ -3,6 +3,7 @@ import express from 'express'
 import { errorHandler } from './lib/http.ts'
 import { requestHost } from './lib/storage.ts'
 import { anamnesisRouter } from './modules/anamnesis/router.ts'
+import { appointmentsRouter } from './modules/appointments/router.ts'
 import { authRouter } from './modules/auth/router.ts'
 import { billingRouter } from './modules/billing/router.ts'
 import { checkinRouter } from './modules/checkin/router.ts'
@@ -10,6 +11,7 @@ import { exercisesRouter } from './modules/exercises/router.ts'
 import { feedRouter } from './modules/feed/router.ts'
 import { feedbacksRouter } from './modules/feedbacks/router.ts'
 import { linksRouter } from './modules/links/router.ts'
+import { measurementsRouter } from './modules/measurements/router.ts'
 import { plansRouter } from './modules/plans/router.ts'
 import { sessionsRouter } from './modules/sessions/router.ts'
 import { usersRouter } from './modules/users/router.ts'
@@ -30,6 +32,8 @@ app.use('/exercises', exercisesRouter)
 app.use('/plans', plansRouter)
 app.use('/sessions', sessionsRouter)
 app.use('/feedbacks', feedbacksRouter)
+app.use('/measurements', measurementsRouter)
+app.use('/appointments', appointmentsRouter)
 app.use('/feed', feedRouter)
 app.use('/billing', billingRouter)
 app.use('/checkin', checkinRouter)

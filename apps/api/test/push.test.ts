@@ -8,6 +8,7 @@ import { signAccess } from '../src/lib/jwt.ts'
 import { prisma } from '../src/lib/prisma.ts'
 import { queue } from '../src/lib/queue.ts'
 import { redis } from '../src/lib/redis.ts'
+import { notifyOutdated } from '../src/modules/plans/outdated.ts'
 
 const run = Date.now()
 const emails: string[] = []
@@ -137,5 +138,21 @@ describe('push', () => {
     const [job] = await pushJobs()
     assert.match(JSON.stringify(job?.data), /Hipertrofia Nova/)
     await job?.remove()
+  })
+
+  it('job diário avisa o instrutor da ficha que venceu nas últimas 24 h (RN04)', async () => {
+    await call('PUT', '/auth/push-token', instrutor.token, { token })
+    const venceu = new Date(Date.now() - 60.5 * 86_400_000)
+    await prisma.workoutPlan.updateMany({
+      where: { studentId: aluno.id, status: 'ACTIVE' },
+      data: { updatedAt: venceu },
+    })
+    await notifyOutdated()
+    const [job] = await pushJobs()
+    assert.match(JSON.stringify(job?.data), /Mais de 60 dias sem atualização: Ana Aluna/)
+    await job?.remove()
+    // No dia seguinte já não avisa de novo
+    await notifyOutdated(new Date(Date.now() + 86_400_000))
+    assert.equal((await pushJobs()).length, 0)
   })
 })

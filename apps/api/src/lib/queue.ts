@@ -10,6 +10,7 @@ export type Jobs = {
   ping: { at: string }
   email: Mail
   push: Push
+  outdated: Record<string, never> // RN04, agendado no worker
   // 'daily-billing': Record<string, never>                     (sprint 4, RN06/RN07)
 }
 

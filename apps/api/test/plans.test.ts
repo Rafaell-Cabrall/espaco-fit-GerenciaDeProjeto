@@ -233,6 +233,17 @@ describe('fichas', () => {
     assert.equal(res.status, 403)
   })
 
+  it('outro instrutor lê a ficha só com vínculo ativo e não edita a do anterior (RU07)', async () => {
+    const path = `/plans/${draft.id}`
+    assert.equal((await call('GET', path, outroInstrutor.token)).status, 403)
+    const link = await prisma.link.create({
+      data: { studentId: aluno.id, instructorId: outroInstrutor.id },
+    })
+    assert.equal((await call('GET', path, outroInstrutor.token)).status, 200)
+    assert.equal((await call('POST', `${path}/publish`, outroInstrutor.token)).status, 403)
+    await prisma.link.delete({ where: { id: link.id } })
+  })
+
   it('modelos são do próprio instrutor', async () => {
     const created = await call('POST', '/plans/templates', instrutor.token, {
       name: `Hipertrofia ${run}`,

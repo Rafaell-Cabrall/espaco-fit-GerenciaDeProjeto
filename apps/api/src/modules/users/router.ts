@@ -1,7 +1,8 @@
 // Cadastro por convite: admin cria qualquer perfil; instrutor cria aluno com anamnese e vínculo
 import { randomBytes } from 'node:crypto'
-import { createUserSchema, Role } from '@espacofit/shared'
+import { createUserSchema, Role, updateUserStatusSchema } from '@espacofit/shared'
 import { Router } from 'express'
+import { z } from 'zod'
 import { HttpError, validate } from '../../lib/http.ts'
 import { hashPassword } from '../../lib/password.ts'
 import { prisma } from '../../lib/prisma.ts'
@@ -50,8 +51,37 @@ usersRouter.post(
   },
 )
 
-// ?role=INSTRUTOR alimenta a escolha do instrutor ao vincular
-usersRouter.get('/', requireRole('ADMIN'), async (req, res) => {
-  const role = Role.optional().parse(req.query.role)
-  res.json(await prisma.user.findMany({ where: { role }, select, orderBy: { name: 'asc' } }))
+const adminSelect = { ...select, active: true } as const
+const listQuery = z.object({
+  role: Role.optional(),
+  active: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 })
+
+// ?role=INSTRUTOR&active=true alimenta a escolha do instrutor ao vincular (RU07)
+usersRouter.get('/', requireRole('ADMIN'), async (req, res) => {
+  const where = listQuery.parse(req.query)
+  res.json(await prisma.user.findMany({ where, select: adminSelect, orderBy: { name: 'asc' } }))
+})
+
+// Ativar/desativar. Desativado não entra e perde as sessões abertas (o auth confere `active`).
+usersRouter.patch(
+  '/:id',
+  requireRole('ADMIN'),
+  validate(updateUserStatusSchema),
+  async (req, res) => {
+    const id = req.params.id as string
+    if (id === req.user.id) throw new HttpError(422, 'Você não pode desativar a própria conta')
+    const user = await prisma.user.findUnique({ where: { id } })
+    if (!user) throw new HttpError(404, 'Usuário não encontrado')
+    res.json(
+      await prisma.user.update({
+        where: { id },
+        data: { active: req.body.active },
+        select: adminSelect,
+      }),
+    )
+  },
+)
