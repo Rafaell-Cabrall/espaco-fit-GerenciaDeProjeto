@@ -104,8 +104,9 @@ Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do 
 
 **Back (se sobrar tempo)**
 - [x] `users`: admin cria, ativa e desativa (`PATCH /users/:id`)
-- [ ] `users`: aluno e instrutor editam o próprio perfil e trocam e-mail e senha (o front disso é da Sprint 5)
-- [ ] `billing`: planos e assinatura (API pronta para o front da Sprint 4)
+- [x] `auth`: trocar a senha logado (`PUT /auth/password`)
+- [ ] `users`: aluno e instrutor editam o próprio perfil e trocam e-mail (o front disso é da Sprint 5)
+- [x] `billing`: planos e assinatura (API pronta para o front da Sprint 4)
 
 **Front: Instrutor (obrigatório)**
 - [ ] Aba Biblioteca: busca, "Novo Template", meus templates, exercícios por categoria com contagem (agrupados no app pelo `muscleGroup`); template aberto só para leitura com "Editar", e a edição reaproveita o editor de ficha
@@ -141,9 +142,9 @@ Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do 
 Demo: admin cadastra plano e registra pagamento; aluno vê status, vencimento e dias restantes; vencimento simulado dispara push + e-mail 3 dias antes; inadimplente vê bloqueio progressivo.
 
 **Back**
-- [ ] `billing`: dias restantes, registro de pagamento manual pelo admin, recibo
-- [ ] Job diário de cobrança preventiva: push + e-mail 3 dias antes (RN06)
-- [ ] Bloqueio progressivo: vencido bloqueia check-in; 2 meses bloqueia o app (RN07), restaurado no pagamento
+- [x] `billing`: dias restantes, registro de pagamento manual pelo admin e pelo instrutor com confirmação por senha, histórico (adiantado na Sprint 3; recibo em PDF só se a academia pedir)
+- [x] Job diário de cobrança preventiva: push + e-mail 3 dias antes (RN06) (adiantado na Sprint 3)
+- [x] Bloqueio progressivo: 2 meses bloqueia o app (RN07), restaurado no pagamento (adiantado na Sprint 3; o check-in usa o mesmo `status` quando existir)
 - [ ] `checkin`: `POST /qr` e `POST /validate` (API pronta para o front da Sprint 5)
 - [ ] Se decidido pela equipe: gateway Pix (Mercado Pago sandbox) com webhook, atrás da mesma interface do pagamento manual (RNF05)
 

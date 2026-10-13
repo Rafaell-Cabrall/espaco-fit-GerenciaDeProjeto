@@ -1,4 +1,4 @@
-# API — contratos (Sprints 1 a 3)
+# API — contratos (Sprints 1 a 4)
 
 > Os guias em PDF abaixo são da Sprint 1. Na Sprint 2 mudaram o cadastro (só por convite), a anamnese (preenchida pelo instrutor) e a ficha (nome, período e dia da semana): na divergência, vale a tabela desta página e o `packages/shared`.
 
@@ -6,7 +6,7 @@ Guia de autenticação para o front, com fluxos por tela e exemplos: [autenticac
 Guia da anamnese do primeiro acesso: [anamnese.pdf](anamnese.pdf) (fonte em [anamnese.html](anamnese.html)).
 Guia da ficha e do treino (Home, Meus Treinos, execução e montagem pelo instrutor): [treino.pdf](treino.pdf) (fonte em [treino.html](treino.html)).
 
-Coleção do [Bruno](https://www.usebruno.com/) em [`bruno/`](bruno/), para o instrutor montar a ficha pela API na demo. No Bruno: *Open Collection* nessa pasta, ambiente `local` e, se preciso, trocar `studentEmail` pelo e-mail do aluno cadastrado no app (e `baseUrl` pelo IP da máquina). Rodar as requisições na ordem: login admin e instrutor, buscar aluno, vincular, conferir anamnese, biblioteca, criar e publicar a ficha, ver a ficha do aluno. Para a demo do admin enquanto as telas não existem (Sprint 3): "Publicar aviso" (feed), "Instrutores ativos" e "Vincular aluno ao instrutor" com outro `instructorId` (troca de instrutor, RU07). Os ids e tokens passam de uma para a outra sozinhos. Para validar sem abrir o Bruno: `npx @usebruno/cli run --env local` dentro de `bruno/`.
+Coleção do [Bruno](https://www.usebruno.com/) em [`bruno/`](bruno/), para o instrutor montar a ficha pela API na demo. No Bruno: *Open Collection* nessa pasta, ambiente `local` e, se preciso, trocar `studentEmail` pelo e-mail do aluno cadastrado no app (e `baseUrl` pelo IP da máquina). Rodar as requisições na ordem: login admin e instrutor, buscar aluno, vincular, conferir anamnese, biblioteca, criar e publicar a ficha, ver a ficha do aluno. Para a demo do admin enquanto as telas não existem (Sprint 3): "Publicar aviso" (feed), "Instrutores ativos" e "Vincular aluno ao instrutor" com outro `instructorId` (troca de instrutor, RU07). "Registrar pagamento" renova a mensalidade do aluno buscado. Os ids e tokens passam de uma para a outra sozinhos. Para validar sem abrir o Bruno: `npx @usebruno/cli run --env local` dentro de `bruno/`.
 
 Schemas em [`packages/shared/src/index.ts`](../../packages/shared/src/index.ts). O app importa de `@espacofit/shared` e não redeclara tipos.
 Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026); regras seguem o Documento de Requisitos v3.
@@ -14,7 +14,7 @@ Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026
 ## Convenções
 
 - Toda rota, exceto `/auth/*` e `/health`, exige `Authorization: Bearer <accessToken>`.
-- Erro: `{ "error": "mensagem" }`. Validação acrescenta `issues` do zod. Status: `400` dados inválidos, `401` sem sessão, `403` sem perfil ou sem vínculo, `404` não encontrado, `409` conflito, `422` regra de negócio, `429` muitas tentativas. Em todos, o app pode exibir `error` como veio.
+- Erro: `{ "error": "mensagem" }`. Validação acrescenta `issues` do zod. Status: `400` dados inválidos, `401` sem sessão, `402` aluno bloqueado por mensalidade (RN07), `403` sem perfil ou sem vínculo, `404` não encontrado, `409` conflito, `422` regra de negócio (inclusive senha de confirmação errada), `429` muitas tentativas. Em todos, o app pode exibir `error` como veio.
 - Sessão: o access token dura 15 min e o refresh 30 dias. Sair da conta, redefinir a senha ou ter a conta desativada encerra a sessão em todos os aparelhos; o próximo `401` sem refresh válido leva ao login.
 - Datas em ISO 8601 UTC. Cargas em kg como `number`. `null` significa ausência de valor, nunca erro.
 - "Vínculo" = o instrutor só acessa aluno com vínculo ativo. Aluno só acessa a si mesmo. Admin acessa tudo, exceto a anamnese (RN09).
@@ -27,6 +27,7 @@ Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026
 | `POST /auth/refresh` | público | `refreshSchema` | `authResponseSchema`; `401` sessão encerrada | — (o cliente HTTP já trata) |
 | `GET /auth/me` | logado | — | `userSchema` | abertura do app |
 | `POST /auth/logout` | logado | — | `204`; também apaga o token de push | Sair da conta (chamar antes de apagar os tokens locais) |
+| `PUT /auth/password` | logado | `changePasswordSchema` | `authResponseSchema` com tokens novos; `422` senha atual errada; `429` após 10 erros | Perfil > Alterar senha |
 | `PUT /auth/push-token` | logado | `pushTokenSchema` | `204` | ao entrar no app, depois da permissão de notificação |
 | `POST /auth/forgot-password` | público | `forgotPasswordSchema` | `204`; `429` antes de 60 s ou após 5 por hora | Esqueci minha senha, Reenviar código (também no primeiro acesso) |
 | `POST /auth/verify-reset-code` | público | `verifyResetCodeSchema` | `204` ou `400` | Verifique seu e-mail, Primeiro acesso |
@@ -66,6 +67,11 @@ Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026
 | `GET /appointments?from=&to=` | instrutor | `appointmentsQuerySchema` (query) | `appointmentSchema[]` do instrutor, por dia e hora; `400` sem intervalo | Agenda, Home (Resumo do Dia) |
 | `POST /appointments` | instrutor com vínculo | `createAppointmentSchema` | `201` `appointmentSchema`; `409` horário ocupado; `422` dia passado | Confirmar Agendamento |
 | `DELETE /appointments/:id` | instrutor dono | — | `204` (também se já cancelado) | cancelar avaliação |
+| `GET /billing/plans` | admin, instrutor | — | `membershipPlanSchema[]` por preço | planos |
+| `POST /billing/plans` | admin | `createMembershipPlanSchema` | `201` `membershipPlanSchema` | cadastrar plano |
+| `PATCH /billing/plans/:id` | admin | `updateMembershipPlanSchema` | `membershipPlanSchema`; `404` | editar, desativar plano |
+| `GET /billing/students/:studentId` | o aluno, instrutor com vínculo, admin | — | `studentBillingSchema` | aba Mensalidade, card Contrato (Home e Perfil do aluno) |
+| `POST /billing/students/:studentId/payments` | admin, instrutor com vínculo | `registerPaymentSchema` | `201` `studentBillingSchema`; `422` senha errada; `400` sem plano definido; `409` id de outro aluno | Registrar Pagamento → Confirmar Pagamento, Renovar Mensalidade |
 | `GET /feed` | logado | — | `announcementSchema[]` vigentes, mais recente primeiro | Aviso da Academia (Home do aluno e do instrutor) |
 | `POST /feed` | admin | `createAnnouncementSchema` | `201` `announcementSchema`; `422` validade no passado | publicar comunicado |
 | `DELETE /feed/:id` | admin | — | `204` | apagar comunicado |
@@ -91,6 +97,8 @@ Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026
 - **Troca de instrutor (RU07)**: `POST /links` com outro instrutor encerra o vínculo anterior. O novo instrutor passa a ver ficha, histórico, anamnese, avaliações e feedbacks do aluno; o anterior perde o acesso. Instrutor desativado não entra no app e não pode receber vínculo.
 - **Avaliação física**: só data e peso são obrigatórios. `bmi` usa a última altura informada até aquela avaliação. "Resultados da Avaliação" compara `items[i]` com `items[i + 1]`; "Evolução Comparativa" usa os 3 primeiros. "−1.2 desde o mês passado" compara o primeiro item com `lastMonthBaseline(items)` (exportado do `@espacofit/shared`). Admin não lê medidas (dado de saúde, RN09).
 - **Agenda**: horário de uma hora, `hour` de 5 a 21 (dia e hora em Brasília); a grade de funcionamento por dia da semana fica no app. "3 aval." e o Resumo do Dia (`from` = `to` = hoje) saem da lista.
+- **Mensalidade**: `status` sai do vencimento. `ACTIVE` = em dia; `OVERDUE` = vencida; `BLOCKED` = vencida há 60 dias ou mais. Bloqueado, o aluno recebe `402` em toda rota, exceto `/auth/*` e `/billing/*`: o app mostra a tela de bloqueio com a mensalidade. O instrutor continua acessando o aluno. Cada pagamento soma um período do plano ao vencimento atual (o atraso não é perdoado); o primeiro conta a partir de hoje. O valor é o preço do plano naquele momento. "Pendentes / Vencendo", "Total a receber" e o selo de Meus Alunos saem do `billing` de `GET /links`.
+- **Lembrete de vencimento (RN06)**: todo dia às 09:00 o worker manda push e e-mail ao aluno cuja mensalidade vence em 3 dias.
 - **Feed**: aviso com `expiresOn` aparece até o fim desse dia (Brasília); `null` = sem prazo.
 - **Mídia do exercício**: `POST /exercises` com `mediaType` devolve `uploadUrl`; o app faz `PUT` do arquivo nela (header `Content-Type` igual ao `mediaType`) em até 15 min.
 
@@ -98,6 +106,6 @@ Campos, textos e formatos seguem o Figma do aluno e do instrutor (V1, 29/09/2026
 
 Cada item ganha schema aqui antes de o front começar.
 
-- **Sprint 3 (se sobrar tempo)**: perfil do aluno e do instrutor (editar dados, e-mail e senha; o front é da Sprint 5).
-- **Sprint 4**: mensalidade e registro de pagamento (inclusive pelo instrutor).
+- **Sprint 5**: editar dados do perfil e trocar e-mail (a troca de senha já existe); check-in barrando mensalidade vencida (o `status` já sai pronto).
+- **Recibo**: o histórico de pagamentos já traz valor, forma e data; recibo em PDF só se a academia pedir.
 - **Aquecimento e educativos**: o RU02 cita uma lista de aquecimento antes da principal, mas o protótipo não tem essa seção. Fica fora até o design incluir.

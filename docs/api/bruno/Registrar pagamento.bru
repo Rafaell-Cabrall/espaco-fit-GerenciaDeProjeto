@@ -1,0 +1,27 @@
+meta {
+  name: Registrar pagamento
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/billing/students/{{studentId}}/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "method": "PIX",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.summary.status: neq BLOCKED
+}
