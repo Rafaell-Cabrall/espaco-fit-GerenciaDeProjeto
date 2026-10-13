@@ -38,33 +38,35 @@ enum PaymentStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(ALUNO)
-  active       Boolean  @default(true)
-  pushToken    String?
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               Role      @default(ALUNO)
+  active             Boolean   @default(true)
+  pushToken          String?
   // vai no JWT; incrementar derruba todos os tokens do usuário (logout, troca de senha)
-  tokenVersion Int      @default(0)
+  tokenVersion       Int       @default(0)
   // recuperação de senha por código de 6 dígitos (tela "Verifique seu e-mail"); guarda o SHA-256
   resetCode          String?
   resetCodeExpiresAt DateTime?
   resetCodeAttempts  Int       @default(0) // conferências do código atual; trava força bruta
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  asStudent    Link[]         @relation("student")
-  asInstructor Link[]         @relation("instructor")
+  asStudent    Link[]            @relation("student")
+  asInstructor Link[]            @relation("instructor")
   anamnesis    Anamnesis?
-  plans        WorkoutPlan[]  @relation("planStudent")
-  authored     WorkoutPlan[]  @relation("planInstructor")
+  plans        WorkoutPlan[]     @relation("planStudent")
+  authored     WorkoutPlan[]     @relation("planInstructor")
   templates    PlanTemplate[]
   sessions     WorkoutSession[]
   measurements BodyMeasurement[]
   subscription Subscription?
   checkIns     CheckIn[]
   exercises    Exercise[]
+  appointments Appointment[]     @relation("appointmentInstructor")
+  evaluations  Appointment[]     @relation("appointmentStudent")
 }
 
 // RU07 — vínculo aluno/instrutor; só um ACTIVE por aluno (garantido no service)
@@ -128,12 +130,12 @@ model WorkoutPlan {
 
 // "Treino B — Costas & Bíceps"
 model WorkoutDivision {
-  id     String      @id @default(cuid())
-  plan   WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  planId String
-  label  String // A, B, C...
-  title  String // Costas & Bíceps
-  order  Int
+  id      String      @id @default(cuid())
+  plan    WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId  String
+  label   String // A, B, C...
+  title   String // Costas & Bíceps
+  order   Int
   // 0 = domingo … 6 = sábado; só rótulo, o treino do dia segue a rotação (RN08)
   weekday Int?
 
@@ -198,18 +200,42 @@ model SetLog {
   @@unique([sessionId, divisionExerciseId, setNumber])
 }
 
-// tela Evolução > Resumo (peso, gordura, músculo; IMC calculado)
+// Avaliação física: "Nova Avaliação" do instrutor; o aluno vê em Evolução > Resumo (IMC calculado)
 model BodyMeasurement {
   id         String   @id @default(cuid())
   student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId  String
+  measuredOn DateTime @db.Date
   weightKg   Decimal  @db.Decimal(5, 2)
   heightCm   Int?
   bodyFatPct Decimal? @db.Decimal(4, 1)
+  leanMassKg Decimal? @db.Decimal(5, 2)
   muscleKg   Decimal? @db.Decimal(5, 2)
-  measuredAt DateTime @default(now())
+  // perímetros em cm
+  chestCm    Decimal? @db.Decimal(4, 1)
+  waistCm    Decimal? @db.Decimal(4, 1)
+  abdomenCm  Decimal? @db.Decimal(4, 1)
+  rightArmCm Decimal? @db.Decimal(4, 1)
+  leftArmCm  Decimal? @db.Decimal(4, 1)
+  thighCm    Decimal? @db.Decimal(4, 1)
+  calfCm     Decimal? @db.Decimal(4, 1)
+  createdAt  DateTime @default(now())
 
-  @@index([studentId, measuredAt])
+  @@index([studentId, measuredOn])
+}
+
+// Agenda de avaliações físicas do instrutor: um aluno por horário de uma hora (dia e hora em Brasília)
+model Appointment {
+  id           String   @id @default(cuid())
+  instructor   User     @relation("appointmentInstructor", fields: [instructorId], references: [id])
+  instructorId String
+  student      User     @relation("appointmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  date         DateTime @db.Date
+  hour         Int
+  createdAt    DateTime @default(now())
+
+  @@unique([instructorId, date, hour])
 }
 
 // RU04 — feed/avisos
@@ -218,7 +244,7 @@ model Announcement {
   title       String
   body        String
   publishedAt DateTime  @default(now())
-  expiresAt   DateTime?
+  expiresOn   DateTime? @db.Date // último dia em que aparece
 }
 
 // RU05 — financeiro

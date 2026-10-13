@@ -172,6 +172,48 @@ async function main() {
     })
   }
 
+  // Três avaliações mensais da Maria: Evolução > Resumo e Evolução Comparativa do protótipo
+  if ((await prisma.bodyMeasurement.count({ where: { studentId: maria.id } })) === 0) {
+    const month = (back: number) => {
+      const d = new Date()
+      d.setUTCMonth(d.getUTCMonth() - back, 10)
+      return new Date(d.toISOString().slice(0, 10))
+    }
+    await prisma.bodyMeasurement.createMany({
+      data: (
+        [
+          [2, 78.8, 20, 61.8, 76, 81],
+          [1, 77.4, 19.1, 62.2, 74, 80],
+          [0, 76.5, 18.2, 62.6, 72, 78],
+        ] as const
+      ).map(([back, weightKg, bodyFatPct, leanMassKg, waistCm, abdomenCm]) => ({
+        studentId: maria.id,
+        measuredOn: month(back),
+        weightKg,
+        heightCm: 168,
+        bodyFatPct,
+        leanMassKg,
+        waistCm,
+        abdomenCm,
+        chestCm: 95,
+        rightArmCm: 34,
+        leftArmCm: 33,
+        thighCm: 57,
+        calfCm: 37,
+      })),
+    })
+  }
+
+  if ((await prisma.announcement.count()) === 0) {
+    await prisma.announcement.create({
+      data: {
+        title: 'Promoção do mês',
+        body: 'Indique um amigo e ganhe 1 mês grátis!',
+        expiresOn: new Date(Date.now() + 30 * 86_400_000),
+      },
+    })
+  }
+
   if ((await prisma.membershipPlan.count()) === 0) {
     await prisma.membershipPlan.create({ data: { name: 'Plano Mensal', priceCents: 8990 } })
   }
