@@ -83,29 +83,55 @@ Demo: aluno finaliza treino, dá feedback, vê calendário e streak; instrutor e
 
 Sprint de 3 semanas por causa da conferência de 22/10. A primeira semana é reservada aos documentos V2.
 
-Demo: treino executado sem internet e sincronizado depois; aba Evolução; feed de avisos publicado pelo admin; admin troca o instrutor de um aluno e o novo instrutor vê o histórico.
+Demo: instrutor agenda uma avaliação física, registra peso, composição e perímetros, e o aluno vê as medidas com a variação na Evolução; instrutor monta uma ficha importando um template da Biblioteca e responde um feedback com "Ajustar Treino"; treino executado sem internet e sincronizado depois; aviso da academia aparece na Home do aluno e do instrutor; troca de instrutor de um aluno, e o novo instrutor vê o histórico.
+
+Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do Admin continua vazio.
 
 **Documentos (toda a equipe, até 22/10)**
 - [ ] Doc. de Arquitetura v2: componentes finos, modelo de dados (Prisma como fonte), fluxos offline/notificação/ficha, ADRs, implantação
 - [ ] Doc. de Requisitos v2: incorporar as validações das Sprints 1 e 2
 - [ ] Protótipo atualizado no Figma (aluno, instrutor, admin)
 
-**Back**
-- [ ] `measurements` e avaliação física (composição corporal e perímetros) + agenda de avaliações do instrutor (movido da Sprint 2)
+**Back (obrigatório)**
+- [ ] Contratos da sprint em `packages/shared` até 14/10, antes das rotas (desbloqueia os dois fronts)
+- [ ] Avaliação física (movido da Sprint 2): `BodyMeasurement` ganha massa magra e perímetros (tórax, cintura, abdômen, braço dir./esq., coxa, panturrilha). Instrutor cria, lista e abre o resultado com a comparação com a avaliação anterior (Resultados da Avaliação, Evolução Comparativa das 3 últimas). Aluno lê as próprias medidas com IMC e variação desde o mês passado
+- [ ] Agenda de avaliações (movido da Sprint 2): horários de 07:00 a 20:00, contagem por dia da semana, agendar um aluno num horário livre, cancelar. Avaliações de hoje alimentam o "Resumo do Dia" da Home do instrutor
+- [ ] `plans`: `PUT /plans/templates/:id` para editar template na Biblioteca (criar, listar e apagar já existem); ficha atual com dias decorridos do período ("34 de 91 dias")
 - [ ] `plans`: sinalizar ficha/anamnese > 60 dias (RN04) + job diário que notifica o instrutor
-- [ ] `feed`: comunicados com validade (admin escreve, todos leem)
+- [ ] `feed`: comunicados com validade (admin escreve, todos leem só os vigentes)
 - [ ] `links`: troca de instrutor encerrando o vínculo antigo (RU07); filtrar instrutores inativos
-- [ ] `users`: admin cria/ativa/desativa; aluno e instrutor editam o próprio perfil
 - [ ] Endpoints idempotentes para a fila de sincronização (id gerado no app)
+
+**Back (se sobrar tempo)**
+- [ ] `users`: admin cria/ativa/desativa; aluno e instrutor editam o próprio perfil e trocam e-mail e senha (o front disso é da Sprint 5)
 - [ ] `billing`: planos e assinatura (API pronta para o front da Sprint 4)
 
-**Front**
-- [ ] Aluno: offline (cache persistido da ficha + fila de mutações com retry, banner "Modo Offline", RNF03)
-- [ ] Aluno: Evolução (Resumo, Anamnese, Frequência, medidas); Home com feed (estado vazio e cache)
-- [ ] Instrutor: biblioteca de exercícios com mídia, histórico e feedback dos alunos, alerta de ficha vencida
-- [ ] Admin: lista de usuários, criar/desativar, alterar instrutor do aluno, publicar comunicado
+**Front: Instrutor (obrigatório)**
+- [ ] Aba Biblioteca: busca, "Novo Template", meus templates, exercícios por categoria com contagem (agrupados no app pelo `muscleGroup`); template aberto só para leitura com "Editar", e a edição reaproveita o editor de ficha
+- [ ] Nova Ficha pela Home: buscar aluno → "Como deseja criar?" (Importar da Biblioteca ou Criar do Zero) → editor de ficha que já existe
+- [ ] Feedbacks Recentes: lista com não lidos, marca como lido e "Ajustar Treino" abre a ficha do aluno (API pronta)
+- [ ] Agenda ligada à API: a tela e o "Qual aluno fará a avaliação?" já existem, mas gravam no AsyncStorage do aparelho
+- [ ] Perfil do aluno: Nova Avaliação, Resultados da Avaliação, lista de avaliações e Evolução Comparativa na aba Resumo
+- [ ] Perfil do aluno: ficha aberta só para leitura ("Visualizando", com o progresso do período) e botão "Ajustar Ficha" no treino expandido do Histórico
+- [ ] Home: Resumo do Dia (avaliações de hoje + "Ver Agenda") e Aviso da Academia vindo do feed
+
+**Front: Aluno (obrigatório)**
+- [ ] Offline (cache persistido da ficha + fila de mutações com retry, banner "Modo Offline", RNF03)
+- [ ] Evolução > Resumo com as medidas reais (peso, IMC, gordura, músculo) e a variação desde o mês passado; hoje os cards mostram "—"
+- [ ] Home com Aviso da Academia vindo do feed (estado vazio e cache)
+
+**Front (se sobrar tempo)**
+- [ ] Aluno: modal de demonstração do exercício na execução (GIF grande + descrição do exercício)
+- [ ] Instrutor: cadastrar exercício com mídia pela Biblioteca (API pronta desde a Sprint 2)
+- [ ] Admin: lista de usuários, criar/desativar, alterar instrutor do aluno, publicar comunicado. Só se o design entregar as telas até 15/10. Senão vai para a Sprint 4, e a demo de RU07 e do comunicado é feita pelo Bruno
+
+**Fica para depois (está no protótipo, mas não é desta sprint)**
+- Sprint 4: atalho "Pagamento" e Registrar Pagamento com senha, aba Mensalidade do aluno, selo "Em dia / Vencida" em Meus Alunos e no cabeçalho do aluno, card Contrato na Home e no Perfil do aluno
+- Sprint 5: Perfil completo do aluno e do instrutor (dados pessoais, alterar e-mail e senha, notificações, privacidade, exportar dados)
+- A decidir com o design: "Peso-alvo" nas Metas do Mês e "Agendar nova avaliação" pelo aluno (não têm regra nem dono definido); CREF e anos de experiência no Perfil do instrutor
 
 **Design**
+- [ ] Telas do Admin (o arquivo continua vazio; bloqueia o front do admin)
 - [ ] Telas de Financeiro (aluno e admin) e Check-in (QR do aluno, leitor do admin)
 - [ ] Revisão de usabilidade das telas já implementadas (RNF02: botões largos, um clique)
 
