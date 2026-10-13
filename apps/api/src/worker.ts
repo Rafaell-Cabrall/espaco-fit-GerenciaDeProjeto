@@ -2,6 +2,7 @@ import { Worker } from 'bullmq'
 import { sendMail } from './lib/mail.ts'
 import { sendPush } from './lib/push.ts'
 import { connection, type Jobs, queue } from './lib/queue.ts'
+import { remindDueSoon } from './modules/billing/reminder.ts'
 import { notifyOutdated } from './modules/plans/outdated.ts'
 
 const handlers: { [K in keyof Jobs]: (data: Jobs[K]) => Promise<void> } = {
@@ -11,6 +12,7 @@ const handlers: { [K in keyof Jobs]: (data: Jobs[K]) => Promise<void> } = {
   email: sendMail,
   push: sendPush,
   outdated: () => notifyOutdated(),
+  'billing-reminder': () => remindDueSoon(),
 }
 
 const worker = new Worker(
@@ -32,6 +34,12 @@ await queue.upsertJobScheduler(
   'outdated',
   { pattern: '0 8 * * *', tz: 'America/Sao_Paulo' },
   { name: 'outdated', data: {} },
+)
+// RN06: lembrete de mensalidade às 09:00
+await queue.upsertJobScheduler(
+  'billing-reminder',
+  { pattern: '0 9 * * *', tz: 'America/Sao_Paulo' },
+  { name: 'billing-reminder', data: {} },
 )
 
 console.log('worker ouvindo a fila "jobs"')

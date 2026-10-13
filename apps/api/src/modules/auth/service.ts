@@ -55,6 +55,32 @@ export async function refresh(refreshToken: string) {
   return session(user)
 }
 
+// Confirma a senha de quem já está logado ("Confirmar Pagamento", "Alterar senha"). Erro conta como
+// erro de login: o mesmo limite de 10 em 15 min vale para quem pegou o celular desbloqueado.
+export async function confirmPassword(id: string, password: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } })
+  const key = loginFailKey(user.email)
+  if (Number(await redis.get(key)) >= LOGIN_MAX_FAILS) {
+    throw new HttpError(429, 'Muitas tentativas. Aguarde 15 minutos.')
+  }
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    await hit(key, LOGIN_WINDOW_SEC)
+    throw new HttpError(422, 'Senha incorreta')
+  }
+  await redis.del(key)
+  return user
+}
+
+// Senha nova derruba as sessões dos outros aparelhos; este recebe tokens novos
+export async function changePassword(id: string, currentPassword: string, password: string) {
+  await confirmPassword(id, currentPassword)
+  const user = await prisma.user.update({
+    where: { id },
+    data: { passwordHash: await hashPassword(password), tokenVersion: { increment: 1 } },
+  })
+  return session(user)
+}
+
 // O middleware auth já garantiu usuário ativo com token válido
 export async function me(id: string) {
   return prisma.user.findUniqueOrThrow({
