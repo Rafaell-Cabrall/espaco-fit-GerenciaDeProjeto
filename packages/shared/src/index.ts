@@ -427,3 +427,100 @@ export const feedbackSchema = z.object({
   read: z.boolean(),
 })
 export type Feedback = z.infer<typeof feedbackSchema>
+
+// ---------- measurements (avaliação física) ----------
+
+const cm = z.number().min(10).max(250).nullable().default(null)
+
+// POST /measurements — "Nova Avaliação" do instrutor com vínculo. Só data e peso são obrigatórios;
+// campo deixado em branco vai como null.
+export const createMeasurementSchema = z.object({
+  studentId: z.string().min(1),
+  measuredOn: day, // "Data da Avaliação"
+  // Composição Corporal
+  weightKg: z.number().min(20).max(400), // "76.5 kg"
+  heightCm: z.int().min(100).max(250).nullable().default(null), // "1.68 m" = 168
+  bodyFatPct: z.number().min(1).max(80).nullable().default(null), // "18.2 %"
+  leanMassKg: z.number().min(10).max(200).nullable().default(null), // "Massa Magra"
+  muscleKg: z.number().min(5).max(150).nullable().default(null), // card "Músculo" da Evolução do aluno
+  // Perímetros e Medidas
+  chestCm: cm, // Tórax
+  waistCm: cm, // Cintura
+  abdomenCm: cm, // Abdômen
+  rightArmCm: cm, // Braço Dir.
+  leftArmCm: cm, // Braço Esq.
+  thighCm: cm, // Coxa
+  calfCm: cm, // Panturrilha
+})
+export type CreateMeasurementInput = z.input<typeof createMeasurementSchema>
+
+// GET /measurements?studentId= — mais recente primeiro. O primeiro item é a "ATUAL"; "Resultados da
+// Avaliação" compara items[i] com items[i + 1]; "Evolução Comparativa" usa os 3 primeiros.
+export const measurementSchema = createMeasurementSchema.omit({ studentId: true }).extend({
+  id: z.string(),
+  bmi: z.number().nullable(), // IMC com uma casa; usa a última altura informada até esta avaliação
+})
+export type Measurement = z.infer<typeof measurementSchema>
+
+// "−1.2 desde o mês passado" (Evolução > Resumo): a avaliação base é a mais recente de um mês anterior
+// ao da atual. null = ainda não há com o que comparar. items na ordem do GET (mais recente primeiro).
+export function lastMonthBaseline(items: Measurement[]): Measurement | null {
+  const month = items[0]?.measuredOn.slice(0, 7)
+  return (month && items.find((m) => m.measuredOn.slice(0, 7) < month)) || null
+}
+
+// ---------- agenda de avaliações (instrutor) ----------
+
+// Uma avaliação de uma hora por horário; dia e hora em Brasília. hour 7 = "07:00". A grade de
+// horários de funcionamento é do app; a API só recusa dia passado e horário ocupado (409).
+const hour = z.int().min(5).max(21)
+
+// POST /appointments — "Confirmar Agendamento às 07:00". Exige vínculo ativo com o aluno.
+export const createAppointmentSchema = z.object({
+  studentId: z.string().min(1),
+  date: day,
+  hour,
+})
+export type CreateAppointmentInput = z.input<typeof createAppointmentSchema>
+
+// GET /appointments?from=&to= — avaliações do instrutor no intervalo (inclusive), por dia e hora.
+// "3 aval." por dia e o "Resumo do Dia" da Home (from = to = hoje) saem desta lista.
+export const appointmentsQuerySchema = z.object({ from: day, to: day })
+export type AppointmentsQuery = z.input<typeof appointmentsQuerySchema>
+
+export const appointmentSchema = z.object({
+  id: z.string(),
+  date: day,
+  hour: z.int(),
+  student: userRef,
+})
+export type Appointment = z.infer<typeof appointmentSchema>
+
+// ---------- feed (avisos da academia) ----------
+
+// POST /feed (admin). expiresOn = último dia em que o aviso aparece ("Válido até 30/09"); null = sem prazo.
+export const createAnnouncementSchema = z.object({
+  title: z.string().trim().min(2).max(80), // "Promoção de Setembro"
+  body: z.string().trim().min(2).max(500),
+  expiresOn: day.nullable().default(null),
+})
+export type CreateAnnouncementInput = z.input<typeof createAnnouncementSchema>
+
+// GET /feed — avisos vigentes, mais recente primeiro (card "Aviso da Academia" da Home)
+export const announcementSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  body: z.string(),
+  publishedAt: isoDate,
+  expiresOn: day.nullable(),
+})
+export type Announcement = z.infer<typeof announcementSchema>
+
+// ---------- admin: usuários ----------
+
+// GET /users?role=&active= e PATCH /users/:id. Desativar encerra a sessão em todos os aparelhos;
+// instrutor inativo some da escolha de instrutor (?role=INSTRUTOR&active=true).
+export const adminUserSchema = userSchema.extend({ active: z.boolean() })
+export type AdminUser = z.infer<typeof adminUserSchema>
+export const updateUserStatusSchema = z.object({ active: z.boolean() })
+export type UpdateUserStatusInput = z.input<typeof updateUserStatusSchema>
