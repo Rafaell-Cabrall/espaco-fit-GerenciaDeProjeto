@@ -1,0 +1,19 @@
+meta {
+  name: Instrutores ativos
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/users?role=INSTRUTOR&active=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Publicar aviso
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/feed
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "title": "Promoção do mês",
+    "body": "Indique um amigo e ganhe 1 mês grátis!",
+    "expiresOn": null
+  }
+}
+
+assert {
+  res.status: eq 201
+}

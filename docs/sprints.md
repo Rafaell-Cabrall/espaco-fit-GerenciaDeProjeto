@@ -93,17 +93,18 @@ Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do 
 - [ ] Protótipo atualizado no Figma (aluno, instrutor, admin)
 
 **Back (obrigatório)**
-- [ ] Contratos da sprint em `packages/shared` até 14/10, antes das rotas (desbloqueia os dois fronts)
-- [ ] Avaliação física (movido da Sprint 2): `BodyMeasurement` ganha massa magra e perímetros (tórax, cintura, abdômen, braço dir./esq., coxa, panturrilha). Instrutor cria, lista e abre o resultado com a comparação com a avaliação anterior (Resultados da Avaliação, Evolução Comparativa das 3 últimas). Aluno lê as próprias medidas com IMC e variação desde o mês passado
-- [ ] Agenda de avaliações (movido da Sprint 2): horários de 07:00 a 20:00, contagem por dia da semana, agendar um aluno num horário livre, cancelar. Avaliações de hoje alimentam o "Resumo do Dia" da Home do instrutor
-- [ ] `plans`: `PUT /plans/templates/:id` para editar template na Biblioteca (criar, listar e apagar já existem); ficha atual com dias decorridos do período ("34 de 91 dias")
-- [ ] `plans`: sinalizar ficha/anamnese > 60 dias (RN04) + job diário que notifica o instrutor
-- [ ] `feed`: comunicados com validade (admin escreve, todos leem só os vigentes)
-- [ ] `links`: troca de instrutor encerrando o vínculo antigo (RU07); filtrar instrutores inativos
-- [ ] Endpoints idempotentes para a fila de sincronização (id gerado no app)
+- [x] Contratos da sprint em `packages/shared` até 14/10, antes das rotas (desbloqueia os dois fronts)
+- [x] Avaliação física (movido da Sprint 2): `BodyMeasurement` ganha massa magra e perímetros (tórax, cintura, abdômen, braço dir./esq., coxa, panturrilha). Instrutor cria, lista e abre o resultado com a comparação com a avaliação anterior (Resultados da Avaliação, Evolução Comparativa das 3 últimas). Aluno lê as próprias medidas com IMC e variação desde o mês passado
+- [x] Agenda de avaliações (movido da Sprint 2): horários de 07:00 a 20:00, contagem por dia da semana, agendar um aluno num horário livre, cancelar. Avaliações de hoje alimentam o "Resumo do Dia" da Home do instrutor
+- [x] `plans`: `PUT /plans/templates/:id` para editar template na Biblioteca (criar, listar e apagar já existem); ficha atual com dias decorridos do período ("34 de 91 dias")
+- [x] `plans`: sinalizar ficha/anamnese > 60 dias (RN04) + job diário que notifica o instrutor
+- [x] `feed`: comunicados com validade (admin escreve, todos leem só os vigentes)
+- [x] `links`: troca de instrutor encerrando o vínculo antigo (RU07); filtrar instrutores inativos
+- [x] Endpoints idempotentes para a fila de sincronização (id gerado no app)
 
 **Back (se sobrar tempo)**
-- [ ] `users`: admin cria/ativa/desativa; aluno e instrutor editam o próprio perfil e trocam e-mail e senha (o front disso é da Sprint 5)
+- [x] `users`: admin cria, ativa e desativa (`PATCH /users/:id`)
+- [ ] `users`: aluno e instrutor editam o próprio perfil e trocam e-mail e senha (o front disso é da Sprint 5)
 - [ ] `billing`: planos e assinatura (API pronta para o front da Sprint 4)
 
 **Front: Instrutor (obrigatório)**

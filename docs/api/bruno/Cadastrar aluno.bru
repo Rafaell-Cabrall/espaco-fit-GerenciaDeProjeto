@@ -21,6 +21,7 @@ body:json {
     "anamnesis": {
       "birthDate": "1998-03-15",
       "phone": "(11) 99123-4567",
+      "cpf": "{{inviteCpf}}",
       "profession": "Designer Gráfica",
       "goal": "Hipertrofia",
       "goalDetails": "Hipertrofia e definição muscular",
@@ -43,6 +44,8 @@ body:json {
 script:pre-request {
   // e-mail novo a cada execução; example.com não entrega a ninguém. O código sai no console do worker.
   bru.setVar("inviteEmail", `convidado-${Date.now()}@example.com`);
+  // CPF é obrigatório no cadastro pelo instrutor e não pode repetir
+  bru.setVar("inviteCpf", String(Date.now()).slice(-11).padStart(11, "0"));
 }
 
 assert {
