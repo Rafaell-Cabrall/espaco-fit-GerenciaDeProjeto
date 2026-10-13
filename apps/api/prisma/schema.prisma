@@ -24,13 +24,6 @@ enum PlanStatus {
   EXPIRED
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  OVERDUE
-  BLOCKED
-  CANCELED
-}
-
 enum PaymentStatus {
   PENDING
   PAID
@@ -54,19 +47,20 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  asStudent    Link[]            @relation("student")
-  asInstructor Link[]            @relation("instructor")
-  anamnesis    Anamnesis?
-  plans        WorkoutPlan[]     @relation("planStudent")
-  authored     WorkoutPlan[]     @relation("planInstructor")
-  templates    PlanTemplate[]
-  sessions     WorkoutSession[]
-  measurements BodyMeasurement[]
-  subscription Subscription?
-  checkIns     CheckIn[]
-  exercises    Exercise[]
-  appointments Appointment[]     @relation("appointmentInstructor")
-  evaluations  Appointment[]     @relation("appointmentStudent")
+  asStudent          Link[]            @relation("student")
+  asInstructor       Link[]            @relation("instructor")
+  anamnesis          Anamnesis?
+  plans              WorkoutPlan[]     @relation("planStudent")
+  authored           WorkoutPlan[]     @relation("planInstructor")
+  templates          PlanTemplate[]
+  sessions           WorkoutSession[]
+  measurements       BodyMeasurement[]
+  subscription       Subscription?
+  checkIns           CheckIn[]
+  exercises          Exercise[]
+  appointments       Appointment[]     @relation("appointmentInstructor")
+  evaluations        Appointment[]     @relation("appointmentStudent")
+  registeredPayments Payment[]         @relation("paymentRegisteredBy")
 }
 
 // RU07 — vínculo aluno/instrutor; só um ACTIVE por aluno (garantido no service)
@@ -258,17 +252,19 @@ model MembershipPlan {
   subscriptions Subscription[]
 }
 
+// Status (em dia, vencida, bloqueada) é calculado pelo dueDate: pagar libera na hora (RN07)
 model Subscription {
-  id        String             @id @default(cuid())
-  student   User               @relation(fields: [studentId], references: [id])
-  studentId String             @unique
-  plan      MembershipPlan     @relation(fields: [planId], references: [id])
+  id        String         @id @default(cuid())
+  student   User           @relation(fields: [studentId], references: [id])
+  studentId String         @unique
+  plan      MembershipPlan @relation(fields: [planId], references: [id])
   planId    String
-  dueDate   DateTime
-  status    SubscriptionStatus @default(ACTIVE)
-  createdAt DateTime           @default(now())
+  dueDate   DateTime       @db.Date
+  createdAt DateTime       @default(now())
 
   payments Payment[]
+
+  @@index([dueDate])
 }
 
 // provider/externalId ficam nulos até a equipe decidir o gateway (RNF05: nunca guardar cartão)
@@ -282,6 +278,8 @@ model Payment {
   provider       String?
   externalId     String?
   paidAt         DateTime?
+  registeredBy   User?         @relation("paymentRegisteredBy", fields: [registeredById], references: [id])
+  registeredById String? // instrutor ou admin que confirmou com a senha (pagamento manual)
   createdAt      DateTime      @default(now())
 }
 

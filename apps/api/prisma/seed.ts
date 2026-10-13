@@ -214,8 +214,33 @@ async function main() {
     })
   }
 
-  if ((await prisma.membershipPlan.count()) === 0) {
-    await prisma.membershipPlan.create({ data: { name: 'Plano Mensal', priceCents: 8990 } })
+  const mensal =
+    (await prisma.membershipPlan.findFirst({ where: { name: 'Plano Mensal' } })) ??
+    (await prisma.membershipPlan.create({ data: { name: 'Plano Mensal', priceCents: 8990 } }))
+
+  // Mensalidade: Maria em dia (vence em 18 dias, 3 pagamentos); João vencida há 5 dias
+  const today = Date.parse(new Date().toISOString().slice(0, 10))
+  for (const [studentId, dueInDays, methods] of [
+    [maria.id, 18, ['PIX', 'DINHEIRO', 'PIX']],
+    [joao.id, -5, ['PIX']],
+  ] as const) {
+    if (await prisma.subscription.findUnique({ where: { studentId } })) continue
+    await prisma.subscription.create({
+      data: {
+        studentId,
+        planId: mensal.id,
+        dueDate: new Date(today + dueInDays * 86_400_000),
+        payments: {
+          create: methods.map((method, i) => ({
+            amountCents: mensal.priceCents,
+            method,
+            status: 'PAID' as const,
+            paidAt: new Date(today + (dueInDays - 30 * (i + 1)) * 86_400_000),
+            registeredById: instrutor.id,
+          })),
+        },
+      },
+    })
   }
 
   console.log(
