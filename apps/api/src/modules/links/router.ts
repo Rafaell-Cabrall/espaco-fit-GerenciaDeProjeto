@@ -5,6 +5,7 @@ import { Router } from 'express'
 import { HttpError, validate } from '../../lib/http.ts'
 import { prisma } from '../../lib/prisma.ts'
 import { auth, requireRole } from '../../middlewares/auth.ts'
+import { summarize } from '../billing/status.ts'
 
 const ref = { select: { id: true, name: true } }
 const select = {
@@ -59,6 +60,7 @@ linksRouter.get('/', requireRole('ADMIN', 'INSTRUTOR'), async (req, res) => {
           name: true,
           email: true,
           anamnesis: { select: { answers: true } },
+          subscription: { select: { dueDate: true, plan: true } },
           sessions: {
             where: { finishedAt: { not: null } },
             orderBy: { finishedAt: 'desc' },
@@ -71,7 +73,7 @@ linksRouter.get('/', requireRole('ADMIN', 'INSTRUTOR'), async (req, res) => {
     orderBy: { student: { name: 'asc' } },
   })
   res.json(
-    rows.map(({ student: { anamnesis, sessions, ...student }, ...link }) => {
+    rows.map(({ student: { anamnesis, sessions, subscription, ...student }, ...link }) => {
       const answers = (isInstructor ? anamnesis?.answers : null) as {
         goal?: string
         birthDate?: string
@@ -83,6 +85,7 @@ linksRouter.get('/', requireRole('ADMIN', 'INSTRUTOR'), async (req, res) => {
           goal: answers?.goal ?? null,
           birthDate: answers?.birthDate ?? null,
           lastWorkoutAt: sessions[0]?.finishedAt ?? null,
+          billing: summarize(subscription),
         },
       }
     }),

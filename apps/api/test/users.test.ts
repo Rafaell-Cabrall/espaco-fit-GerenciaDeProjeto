@@ -150,4 +150,31 @@ describe('users', () => {
     assert.ok(list.every((u) => u.role === 'INSTRUTOR'))
     assert.equal((await call('GET', '', instrutor.token)).status, 403)
   })
+
+  it('admin desativa e reativa; filtro de ativos esconde o instrutor inativo', async () => {
+    const alvo = await user('INSTRUTOR')
+    const ativos = async () =>
+      (
+        (await (await call('GET', '?role=INSTRUTOR&active=true', admin.token)).json()) as {
+          id: string
+        }[]
+      ).map((u) => u.id)
+    const off = await call('PATCH', `/${alvo.id}`, admin.token, { active: false })
+    assert.equal(off.status, 200)
+    assert.equal((await off.json()).active, false)
+    assert.ok(!(await ativos()).includes(alvo.id))
+    assert.equal(
+      (await fetch(`${base}/auth/me`, { headers: { authorization: `Bearer ${alvo.token}` } }))
+        .status,
+      401,
+    )
+    await call('PATCH', `/${alvo.id}`, admin.token, { active: true })
+    assert.ok((await ativos()).includes(alvo.id))
+    assert.equal((await call('PATCH', `/${admin.id}`, admin.token, { active: false })).status, 422)
+    assert.equal((await call('PATCH', '/nao-existe', admin.token, { active: false })).status, 404)
+    assert.equal(
+      (await call('PATCH', `/${alvo.id}`, instrutor.token, { active: false })).status,
+      403,
+    )
+  })
 })

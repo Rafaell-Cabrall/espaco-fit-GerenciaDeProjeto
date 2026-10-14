@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { HttpError } from '../lib/http.ts'
 import { verifyToken } from '../lib/jwt.ts'
 import { prisma } from '../lib/prisma.ts'
+import { billingStatus } from '../modules/billing/status.ts'
 
 declare global {
   namespace Express {
@@ -12,7 +13,7 @@ declare global {
   }
 }
 
-// Consulta o usuário a cada requisição (uma leitura por chave primária): desativação, logout,
+// Consulta o usuário a cada requisição (uma leitura por chave primária, com a mensalidade): desativação, logout,
 // troca de senha e mudança de perfil valem na hora, sem esperar o token expirar.
 export async function auth(req: Request, _res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace(/^Bearer /, '')
@@ -20,10 +21,23 @@ export async function auth(req: Request, _res: Response, next: NextFunction) {
   if (!payload) throw new HttpError(401, 'Não autenticado')
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
-    select: { role: true, active: true, tokenVersion: true },
+    select: {
+      role: true,
+      active: true,
+      tokenVersion: true,
+      subscription: { select: { dueDate: true } },
+    },
   })
   if (!user?.active || user.tokenVersion !== payload.ver)
     throw new HttpError(401, 'Sessão expirada')
+  // RN07: 2 meses de atraso bloqueiam o app; o aluno ainda entra, sai e vê a mensalidade
+  const due = user.role === 'ALUNO' && user.subscription?.dueDate
+  if (due && billingStatus(due) === 'BLOCKED' && !['/auth', '/billing'].includes(req.baseUrl)) {
+    throw new HttpError(
+      402,
+      'Acesso bloqueado: mensalidade vencida há mais de 2 meses. Regularize na recepção.',
+    )
+  }
   req.user = { id: payload.sub, role: user.role }
   next()
 }

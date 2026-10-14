@@ -131,7 +131,8 @@ async function present(plan: PlanRow): Promise<Plan> {
   }
 }
 
-// Leitura: instrutor autor ou admin. Escrita: só o autor, e ainda com vínculo ativo (RU07).
+// Leitura: admin ou instrutor com vínculo ativo (o novo instrutor vê as fichas do anterior, RU07).
+// Escrita: só o autor, e ainda com vínculo ativo.
 async function findPlan(req: Request, write: boolean) {
   const plan = await prisma.workoutPlan.findUnique({
     where: { id: req.params.id as string },
@@ -140,8 +141,8 @@ async function findPlan(req: Request, write: boolean) {
   if (!plan) throw new HttpError(404, 'Ficha não encontrada')
   const { id, role } = req.user
   if (role === 'ADMIN' && !write) return plan
-  if (role === 'INSTRUTOR' && plan.instructorId === id) {
-    if (!write || (await hasActiveLink(plan.studentId, id))) return plan
+  if (role === 'INSTRUTOR' && (!write || plan.instructorId === id)) {
+    if (await hasActiveLink(plan.studentId, id)) return plan
   }
   throw new HttpError(403, 'Sem permissão')
 }

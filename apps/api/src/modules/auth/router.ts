@@ -1,4 +1,5 @@
 import {
+  changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   pushTokenSchema,
@@ -29,6 +30,11 @@ authRouter.get('/me', auth, async (req, res) => {
 authRouter.post('/logout', auth, async (req, res) => {
   await service.logout(req.user.id)
   res.status(204).end()
+})
+
+// Perfil > "Alterar senha"
+authRouter.put('/password', auth, validate(changePasswordSchema), async (req, res) => {
+  res.json(await service.changePassword(req.user.id, req.body.currentPassword, req.body.password))
 })
 
 // Depois da permissão de notificação: o token do Expo deste aparelho

@@ -10,7 +10,8 @@ export type Jobs = {
   ping: { at: string }
   email: Mail
   push: Push
-  // 'daily-billing': Record<string, never>                     (sprint 4, RN06/RN07)
+  outdated: Record<string, never> // RN04, agendado no worker
+  'billing-reminder': Record<string, never> // RN06, agendado no worker
 }
 
 export const queue = new Queue<Jobs[keyof Jobs]>('jobs', {

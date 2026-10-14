@@ -133,6 +133,51 @@ export const anamnesisSchema = anamnesisAnswersSchema.extend({
 })
 export type Anamnesis = z.infer<typeof anamnesisSchema>
 
+// ---------- billing (mensalidade) ----------
+
+export const PaymentMethod = z.enum(['PIX', 'DINHEIRO', 'CARTAO'], {
+  error: 'Escolha Pix, Dinheiro ou Cartão',
+})
+export type PaymentMethod = z.infer<typeof PaymentMethod>
+
+// Calculado pelo vencimento, nunca gravado: pagar volta para ACTIVE na hora.
+// ACTIVE = "Em dia"; OVERDUE = "Vencida" (bloqueia o check-in); BLOCKED = vencida há 60 dias ou mais,
+// e a API responde 402 ao aluno em tudo, exceto /auth e /billing (RN07).
+export const BillingStatus = z.enum(['ACTIVE', 'OVERDUE', 'BLOCKED'])
+export type BillingStatus = z.infer<typeof BillingStatus>
+
+// "Plano Mensal · R$ 89,90". Valor em centavos.
+export const membershipPlanSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceCents: z.int(),
+  durationDays: z.int(),
+  active: z.boolean(), // inativo não aparece para novas assinaturas
+})
+export type MembershipPlan = z.infer<typeof membershipPlanSchema>
+
+// POST /billing/plans e PATCH /billing/plans/:id (admin; no PATCH todos os campos são opcionais)
+export const createMembershipPlanSchema = z.object({
+  name: z.string().trim().min(2).max(40),
+  priceCents: z.int().min(100).max(1_000_000),
+  durationDays: z.int().min(1).max(366).default(30),
+})
+export type CreateMembershipPlanInput = z.input<typeof createMembershipPlanSchema>
+export const updateMembershipPlanSchema = z
+  .object({ ...createMembershipPlanSchema.shape, active: z.boolean() })
+  .partial()
+export type UpdateMembershipPlanInput = z.input<typeof updateMembershipPlanSchema>
+
+// Selo "Em dia / Vencida" (Meus Alunos), "Vence em 5 dias", "Vencida há 5 dias", "Renovar em 18 dias".
+// null = aluno ainda sem mensalidade registrada.
+export const billingSummarySchema = z.object({
+  plan: membershipPlanSchema.pick({ id: true, name: true, priceCents: true }),
+  dueDate: day, // "Próximo vencimento 15/10/2026"
+  daysLeft: z.int(), // negativo = dias de atraso
+  status: BillingStatus,
+})
+export type BillingSummary = z.infer<typeof billingSummarySchema>
+
 // ---------- users e links ----------
 
 // Normaliza o nome no contrato usado pelo app e pela API, para todos os perfis.
@@ -188,6 +233,7 @@ export const studentLinkSchema = linkSchema.extend({
     goal: Goal.nullable(), // "Hipertrofia"
     birthDate: day.nullable(), // "28 anos"
     lastWorkoutAt: isoDate.nullable(), // "3 dias atrás"; null = nunca treinou
+    billing: billingSummarySchema.nullable(), // selo "Em dia / Vencida" e lista de Registrar Pagamento
   }),
 })
 export type StudentLink = z.infer<typeof studentLinkSchema>
@@ -427,3 +473,140 @@ export const feedbackSchema = z.object({
   read: z.boolean(),
 })
 export type Feedback = z.infer<typeof feedbackSchema>
+
+// ---------- measurements (avaliação física) ----------
+
+const cm = z.number().min(10).max(250).nullable().default(null)
+
+// POST /measurements — "Nova Avaliação" do instrutor com vínculo. Só data e peso são obrigatórios;
+// campo deixado em branco vai como null.
+export const createMeasurementSchema = z.object({
+  studentId: z.string().min(1),
+  measuredOn: day, // "Data da Avaliação"
+  // Composição Corporal
+  weightKg: z.number().min(20).max(400), // "76.5 kg"
+  heightCm: z.int().min(100).max(250).nullable().default(null), // "1.68 m" = 168
+  bodyFatPct: z.number().min(1).max(80).nullable().default(null), // "18.2 %"
+  leanMassKg: z.number().min(10).max(200).nullable().default(null), // "Massa Magra"
+  muscleKg: z.number().min(5).max(150).nullable().default(null), // card "Músculo" da Evolução do aluno
+  // Perímetros e Medidas
+  chestCm: cm, // Tórax
+  waistCm: cm, // Cintura
+  abdomenCm: cm, // Abdômen
+  rightArmCm: cm, // Braço Dir.
+  leftArmCm: cm, // Braço Esq.
+  thighCm: cm, // Coxa
+  calfCm: cm, // Panturrilha
+})
+export type CreateMeasurementInput = z.input<typeof createMeasurementSchema>
+
+// GET /measurements?studentId= — mais recente primeiro. O primeiro item é a "ATUAL"; "Resultados da
+// Avaliação" compara items[i] com items[i + 1]; "Evolução Comparativa" usa os 3 primeiros.
+export const measurementSchema = createMeasurementSchema.omit({ studentId: true }).extend({
+  id: z.string(),
+  bmi: z.number().nullable(), // IMC com uma casa; usa a última altura informada até esta avaliação
+})
+export type Measurement = z.infer<typeof measurementSchema>
+
+// "−1.2 desde o mês passado" (Evolução > Resumo): a avaliação base é a mais recente de um mês anterior
+// ao da atual. null = ainda não há com o que comparar. items na ordem do GET (mais recente primeiro).
+export function lastMonthBaseline(items: Measurement[]): Measurement | null {
+  const month = items[0]?.measuredOn.slice(0, 7)
+  return (month && items.find((m) => m.measuredOn.slice(0, 7) < month)) || null
+}
+
+// ---------- agenda de avaliações (instrutor) ----------
+
+// Uma avaliação de uma hora por horário; dia e hora em Brasília. hour 7 = "07:00". A grade de
+// horários de funcionamento é do app; a API só recusa dia passado e horário ocupado (409).
+const hour = z.int().min(5).max(21)
+
+// POST /appointments — "Confirmar Agendamento às 07:00". Exige vínculo ativo com o aluno.
+export const createAppointmentSchema = z.object({
+  studentId: z.string().min(1),
+  date: day,
+  hour,
+})
+export type CreateAppointmentInput = z.input<typeof createAppointmentSchema>
+
+// GET /appointments?from=&to= — avaliações do instrutor no intervalo (inclusive), por dia e hora.
+// "3 aval." por dia e o "Resumo do Dia" da Home (from = to = hoje) saem desta lista.
+export const appointmentsQuerySchema = z.object({ from: day, to: day })
+export type AppointmentsQuery = z.input<typeof appointmentsQuerySchema>
+
+export const appointmentSchema = z.object({
+  id: z.string(),
+  date: day,
+  hour: z.int(),
+  student: userRef,
+})
+export type Appointment = z.infer<typeof appointmentSchema>
+
+// ---------- feed (avisos da academia) ----------
+
+// POST /feed (admin). expiresOn = último dia em que o aviso aparece ("Válido até 30/09"); null = sem prazo.
+export const createAnnouncementSchema = z.object({
+  title: z.string().trim().min(2).max(80), // "Promoção de Setembro"
+  body: z.string().trim().min(2).max(500),
+  expiresOn: day.nullable().default(null),
+})
+export type CreateAnnouncementInput = z.input<typeof createAnnouncementSchema>
+
+// GET /feed — avisos vigentes, mais recente primeiro (card "Aviso da Academia" da Home)
+export const announcementSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  body: z.string(),
+  publishedAt: isoDate,
+  expiresOn: day.nullable(),
+})
+export type Announcement = z.infer<typeof announcementSchema>
+
+// ---------- admin: usuários ----------
+
+// GET /users?role=&active= e PATCH /users/:id. Desativar encerra a sessão em todos os aparelhos;
+// instrutor inativo some da escolha de instrutor (?role=INSTRUTOR&active=true).
+export const adminUserSchema = userSchema.extend({ active: z.boolean() })
+export type AdminUser = z.infer<typeof adminUserSchema>
+export const updateUserStatusSchema = z.object({ active: z.boolean() })
+export type UpdateUserStatusInput = z.input<typeof updateUserStatusSchema>
+
+// ---------- billing: pagamentos ----------
+
+// POST /billing/students/:studentId/payments — "Confirmar Pagamento" (admin ou instrutor com vínculo).
+// password = senha de login de quem registra. Cada pagamento cobre um período do plano a partir do
+// vencimento atual (atraso não é perdoado); o primeiro conta a partir de hoje. Sem planId vale o plano
+// atual do aluno ou, se ele ainda não tem, o único plano ativo. `id` gerado no app evita registro
+// duplicado no toque duplo: repetir devolve a mesma mensalidade.
+export const registerPaymentSchema = z.object({
+  id: z.string().min(8).max(64).optional(),
+  planId: z.string().min(1).optional(),
+  method: PaymentMethod,
+  password: z.string().min(1, 'Digite sua senha'),
+})
+export type RegisterPaymentInput = z.input<typeof registerPaymentSchema>
+
+export const paymentSchema = z.object({
+  id: z.string(),
+  amountCents: z.int(), // "R$ 89,90"
+  method: PaymentMethod, // "Pix"
+  paidAt: isoDate, // "Agosto 2026"
+})
+export type Payment = z.infer<typeof paymentSchema>
+
+// GET /billing/students/:studentId — aba Mensalidade (instrutor), card Contrato (aluno)
+export const studentBillingSchema = z.object({
+  summary: billingSummarySchema.nullable(),
+  payments: z.array(paymentSchema), // "Histórico de Pagamentos", mais recente primeiro
+})
+export type StudentBilling = z.infer<typeof studentBillingSchema>
+
+// ---------- auth: alterar senha (logado) ----------
+
+// PUT /auth/password devolve authResponseSchema com tokens novos; os outros aparelhos saem.
+// Senha atual errada conta como erro de login (429 após 10).
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Digite a senha atual'),
+  password,
+})
+export type ChangePasswordInput = z.input<typeof changePasswordSchema>
