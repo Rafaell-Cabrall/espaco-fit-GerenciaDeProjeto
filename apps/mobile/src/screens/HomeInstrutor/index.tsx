@@ -1,4 +1,4 @@
-import { feedbackSchema, studentLinkSchema } from '@espacofit/shared'
+import { studentLinkSchema } from '@espacofit/shared'
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { z } from 'zod'
 import { api } from '../../api/client'
 import { useAuth } from '../../auth'
+import { useFeedbacks } from '../../hooks/useFeedbacks'
 import { dateKey, useAgenda } from '../Agenda/data'
 
 const workoutBg = require('../../../assets/workout-bg.jpg')
@@ -43,11 +44,7 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
     queryFn: () => api('/links', z.array(studentLinkSchema)),
     enabled: !!user,
   })
-  const feedbacks = useQuery({
-    queryKey: ['instructor-home', user?.id, 'feedbacks'],
-    queryFn: () => api('/feedbacks', z.array(feedbackSchema)),
-    enabled: !!user,
-  })
+  const feedbacks = useFeedbacks()
   const refreshDashboard = useCallback(() => {
     void students.refetch()
     void feedbacks.refetch()
@@ -86,6 +83,10 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
     }
     if (path === '/students/new') {
       router.push('/(instrutor)/students/new' as RelativePathString)
+      return
+    }
+    if (path === '/feedbacks') {
+      router.push('/(instrutor)/feedbacks')
       return
     }
     // As demais telas do instrutor ainda não têm rotas no app.

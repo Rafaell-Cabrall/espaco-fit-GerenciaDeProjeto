@@ -11,7 +11,7 @@ const items = [
 ] as const
 
 export function InstructorTabBar({
-  active = 'Home',
+  active,
   disabled = false,
   onNavigate,
 }: {
