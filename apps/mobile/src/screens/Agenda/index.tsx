@@ -1,6 +1,6 @@
-import { studentLinkSchema } from '@espacofit/shared'
+import { appointmentSchema, studentLinkSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -20,14 +20,14 @@ import { z } from 'zod'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth'
 import { InstructorTabBar } from '@/components/InstructorTabBar'
-import { dateKey, dayLabel, initials, openingHours, useAgenda } from './data'
+import { agendaKey, dateKey, dayLabel, initials, openingHours, useAgenda } from './data'
 
 const time = (hour: number) => `${String(hour).padStart(2, '0')}:00`
 
 export default function AgendaScreen() {
   const router = useRouter()
   const { user } = useAuth()
-  const agenda = useAgenda(user?.id)
+  const cache = useQueryClient()
   const students = useQuery({
     queryKey: ['instructor-home', user?.id, 'students'],
     queryFn: () => api('/links', z.array(studentLinkSchema)),
@@ -41,6 +41,7 @@ export default function AgendaScreen() {
       return date
     }),
   )
+  const agenda = useAgenda(dateKey(new Date()), dateKey(days[days.length - 1] ?? new Date()))
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
   const selectedDay = days.find((day) => dateKey(day) === selectedDate) ?? new Date()
   const [selectedHour, setSelectedHour] = useState<number | null>(null)
@@ -84,32 +85,23 @@ export default function AgendaScreen() {
     }
     setSaving(true)
     try {
-      const current = await agenda.refetch()
-      if (current.error || !current.data)
-        throw new Error('Não foi possível carregar a agenda. Tente novamente.')
-      const existing = current.data.find(
-        (entry) => entry.date === selectedDate && entry.hour === selectedHour,
-      )
-      if (!cancel && existing) throw new Error('Este horário já está ocupado.')
-      const next =
-        cancel || !student
-          ? current.data.filter((entry) => entry.id !== appointment?.id)
-          : [
-              ...current.data,
-              {
-                id: `${selectedDate}:${selectedHour}`,
-                date: selectedDate,
-                hour: selectedHour,
-                studentId: student.id,
-                studentName: student.name,
-              },
-            ]
-      await agenda.save(next)
+      if (cancel && appointment)
+        await api(`/appointments/${encodeURIComponent(appointment.id)}`, z.undefined(), {
+          method: 'DELETE',
+        })
+      else if (student)
+        // Horário já ocupado volta 409 com a mensagem da API
+        await api('/appointments', appointmentSchema, {
+          method: 'POST',
+          body: { studentId: student.id, date: selectedDate, hour: selectedHour },
+        })
+      await cache.invalidateQueries({ queryKey: agendaKey })
       setSelectedHour(null)
       setSearch('')
       setStudentId(null)
       setError('')
     } catch (cause) {
+      void cache.invalidateQueries({ queryKey: agendaKey })
       setError(cause instanceof Error ? cause.message : 'Não foi possível salvar. Tente novamente.')
     } finally {
       setSaving(false)
@@ -205,7 +197,7 @@ export default function AgendaScreen() {
                   disabled={!entry && past}
                   accessibilityLabel={
                     entry
-                      ? `${time(hour)}, ${entry.studentName}, avaliação física`
+                      ? `${time(hour)}, ${entry.student.name}, avaliação física`
                       : `${time(hour)}, ${past ? 'Horário encerrado' : 'Agendar avaliação'}`
                   }
                   style={[
@@ -218,10 +210,10 @@ export default function AgendaScreen() {
                   {entry ? (
                     <>
                       <View style={styles.avatar}>
-                        <Text style={styles.red}>{initials(entry.studentName)}</Text>
+                        <Text style={styles.red}>{initials(entry.student.name)}</Text>
                       </View>
                       <View style={styles.flex}>
-                        <Text style={styles.studentName}>{entry.studentName}</Text>
+                        <Text style={styles.studentName}>{entry.student.name}</Text>
                         <Text style={styles.subtitle}>
                           <Text style={styles.red}>• </Text>Avaliação Física
                         </Text>
@@ -241,8 +233,7 @@ export default function AgendaScreen() {
           })
         )}
         <Text style={styles.localNote}>
-          Agenda salva neste aparelho. O funcionamento em feriados depende de confirmação da
-          academia.
+          O funcionamento em feriados depende de confirmação da academia.
         </Text>
       </ScrollView>
       <InstructorTabBar />
@@ -273,9 +264,9 @@ export default function AgendaScreen() {
             {appointment ? (
               <View style={styles.appointment}>
                 <View style={styles.avatar}>
-                  <Text style={styles.red}>{initials(appointment.studentName)}</Text>
+                  <Text style={styles.red}>{initials(appointment.student.name)}</Text>
                 </View>
-                <Text style={styles.studentName}>{appointment.studentName}</Text>
+                <Text style={styles.studentName}>{appointment.student.name}</Text>
               </View>
             ) : (
               <>

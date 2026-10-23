@@ -3,7 +3,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
 import { type RelativePathString, useFocusEffect, useRouter } from 'expo-router'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import {
   Alert,
   ImageBackground,
@@ -20,23 +20,23 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { z } from 'zod'
 import { api } from '../../api/client'
 import { useAuth } from '../../auth'
+import { useFeed } from '../../hooks/useFeed'
 import { useFeedbacks } from '../../hooks/useFeedbacks'
 import { dateKey, useAgenda } from '../Agenda/data'
 
 const workoutBg = require('../../../assets/workout-bg.jpg')
 
-type InstructorHomeProps = {
-  // null significa que a agenda ainda não foi integrada; [] significa dia sem avaliações.
-  todayEvaluations?: readonly { id: string; studentName: string }[] | null
-}
-
-export default function InstructorHomeScreen({ todayEvaluations = null }: InstructorHomeProps) {
+export default function InstructorHomeScreen() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { width } = useWindowDimensions()
-  const agenda = useAgenda(user?.id)
-  const localEvaluations = agenda.data?.filter((entry) => entry.date === dateKey(new Date()))
-  const dailyEvaluations = todayEvaluations ?? localEvaluations ?? null
+  const today = dateKey(new Date())
+  const agenda = useAgenda(today, today)
+  const dailyEvaluations = agenda.data ?? null
+  const feed = useFeed()
+  const [notice, setNotice] = useState(0)
+  // Card do aviso ocupa a largura útil menos uma fresta para mostrar o próximo
+  const noticeWidth = Math.min(width, 600) - 32 - (feed.data && feed.data.length > 1 ? 24 : 0)
 
   const instructorName = user?.name?.trim() || 'Instrutor'
   const students = useQuery({
@@ -48,7 +48,9 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
   const refreshDashboard = useCallback(() => {
     void students.refetch()
     void feedbacks.refetch()
-  }, [students.refetch, feedbacks.refetch])
+    void agenda.refetch()
+    void feed.refetch()
+  }, [students.refetch, feedbacks.refetch, agenda.refetch, feed.refetch])
   useFocusEffect(
     useCallback(() => {
       refreshDashboard()
@@ -69,7 +71,7 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         : 'Carregando agendamentos…'
       : dailyEvaluations.length === 0
         ? 'Confira sua programação na agenda.'
-        : dailyEvaluations.map((evaluation) => evaluation.studentName).join(' · ')
+        : dailyEvaluations.map((evaluation) => evaluation.student.name).join(' · ')
 
   const navigateTo = (path: string) => {
     // Ficha nasce do aluno: Nova Ficha abre a lista, e a aba Fichas do aluno abre o editor
@@ -118,7 +120,12 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         ]}
         refreshControl={
           <RefreshControl
-            refreshing={students.isRefetching || feedbacks.isRefetching}
+            refreshing={
+              students.isRefetching ||
+              feedbacks.isRefetching ||
+              agenda.isRefetching ||
+              feed.isRefetching
+            }
             onRefresh={refreshDashboard}
             tintColor="#E60012"
           />
@@ -229,11 +236,46 @@ export default function InstructorHomeScreen({ todayEvaluations = null }: Instru
         </View>
 
         {/* Banner de Aviso Da Academia */}
-        <View style={styles.noticeCard}>
-          <Text style={styles.noticeTag}>AVISO DA ACADEMIA</Text>
-          <Text style={styles.noticeTitle}>Avisos da academia</Text>
-          <Text style={styles.noticeText}>Os comunicados estarão disponíveis em breve.</Text>
-        </View>
+        {feed.data?.length ? (
+          <View style={styles.noticeList}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={noticeWidth + 10}
+              decelerationRate="fast"
+              contentContainerStyle={{ gap: 10 }}
+              onMomentumScrollEnd={(event) =>
+                setNotice(Math.round(event.nativeEvent.contentOffset.x / (noticeWidth + 10)))
+              }
+            >
+              {feed.data.map((item) => (
+                <View key={item.id} style={[styles.noticeCard, { width: noticeWidth }]}>
+                  <Text style={styles.noticeTag}>AVISO DA ACADEMIA</Text>
+                  <Text style={styles.noticeTitle}>{item.title}</Text>
+                  <Text style={styles.noticeText}>{item.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            {feed.data.length > 1 && (
+              <View style={styles.dots}>
+                {feed.data.map((item, index) => (
+                  <View key={item.id} style={[styles.dot, index === notice && styles.activeDot]} />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={[styles.noticeCard, styles.noticeList]}>
+            <Text style={styles.noticeTag}>AVISO DA ACADEMIA</Text>
+            <Text style={styles.noticeText}>
+              {feed.isPending
+                ? 'Carregando avisos…'
+                : feed.isError
+                  ? 'Não foi possível carregar os avisos.'
+                  : 'Nenhum aviso da academia no momento.'}
+            </Text>
+          </View>
+        )}
 
         {/* Métricas do Rodapé Responsivas */}
         <View style={styles.metricsRow}>
@@ -408,8 +450,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#2A2A2A',
-    marginBottom: 16,
   },
+  noticeList: { marginBottom: 16 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#3A3A3A' },
+  activeDot: { width: 16, backgroundColor: '#E60012' },
   noticeTag: {
     fontSize: 10,
     fontFamily: 'SpaceGrotesk_700Bold',

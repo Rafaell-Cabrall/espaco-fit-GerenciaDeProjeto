@@ -1,17 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { appointmentSchema } from '@espacofit/shared'
+import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
+import { api } from '@/api/client'
+import { useAuth } from '@/auth'
 
-const appointmentsSchema = z.array(
-  z.object({
-    id: z.string(),
-    date: z.iso.date(),
-    hour: z.number().int().min(5).max(21),
-    studentId: z.string(),
-    studentName: z.string(),
-  }),
-)
-export type Appointment = z.infer<typeof appointmentsSchema>[number]
 export const dateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 export const dayLabel = (date: Date) =>
@@ -27,24 +19,17 @@ export const initials = (name: string) =>
     .join('')
     .toUpperCase()
 
-export function useAgenda(instructorId?: string) {
-  const queryClient = useQueryClient()
-  const queryKey = ['instructor-agenda', instructorId]
-  const storageKey = `instructor-agenda-v1:${instructorId}`
-  const query = useQuery({
-    queryKey,
-    enabled: !!instructorId,
-    queryFn: async () => {
-      const stored = await AsyncStorage.getItem(storageKey)
-      return stored ? appointmentsSchema.parse(JSON.parse(stored)) : []
-    },
+export const agendaKey = ['instructor-agenda']
+
+// Avaliações do instrutor de from a to (AAAA-MM-DD, inclusive)
+export function useAgenda(from: string, to: string) {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: [...agendaKey, user?.id, from, to],
+    queryFn: () =>
+      api(`/appointments?${new URLSearchParams({ from, to })}`, z.array(appointmentSchema)),
+    enabled: user?.role === 'INSTRUTOR',
   })
-  const save = async (appointments: Appointment[]) => {
-    if (!instructorId) throw new Error('Sessão indisponível.')
-    await AsyncStorage.setItem(storageKey, JSON.stringify(appointments))
-    queryClient.setQueryData(queryKey, appointments)
-  }
-  return { ...query, save }
 }
 
 // Cada horário representa uma avaliação de uma hora, terminando até o fechamento.
