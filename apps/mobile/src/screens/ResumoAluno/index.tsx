@@ -27,8 +27,10 @@ import { z } from 'zod'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth'
 import { InstructorTabBar } from '@/components/InstructorTabBar'
+import { measurementsKey } from '@/hooks/useMeasurements'
 import { initials } from '../Agenda/data'
 import { birthDateInfo, maskCpf, maskDate, maskPhone } from '../NovoAluno/form'
+import { Avaliacoes } from './Avaliacoes'
 import { Historico } from './Historico'
 
 const groups = [
@@ -215,6 +217,8 @@ export default function ResumoAlunoScreen() {
             onRefresh={() => {
               void links.refetch()
               void anamnesis.refetch()
+              if (tab === 'Resumo')
+                void cache.invalidateQueries({ queryKey: measurementsKey(user?.id, studentId) })
               if (tab === 'Fichas') void plans.refetch()
               if (tab === 'Histórico')
                 void cache.invalidateQueries({
@@ -236,61 +240,64 @@ export default function ResumoAlunoScreen() {
         ) : !student ? (
           <Text style={styles.muted}>Aluno não encontrado entre seus vínculos ativos.</Text>
         ) : tab === 'Resumo' ? (
-          anamnesis.isPending ? (
-            <ActivityIndicator color="#E60012" />
-          ) : anamnesis.isError ? (
-            <TouchableOpacity onPress={() => void anamnesis.refetch()}>
-              <Text style={styles.muted}>
-                Não foi possível carregar a anamnese. Toque para tentar novamente.
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.document}>
-                  <Ionicons name="document-text-outline" color="#FF3B30" size={19} />
+          <>
+            {anamnesis.isPending ? (
+              <ActivityIndicator color="#E60012" />
+            ) : anamnesis.isError ? (
+              <TouchableOpacity onPress={() => void anamnesis.refetch()}>
+                <Text style={styles.muted}>
+                  Não foi possível carregar a anamnese. Toque para tentar novamente.
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.document}>
+                    <Ionicons name="document-text-outline" color="#FF3B30" size={19} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.cardTitle}>Anamnese e Objetivos</Text>
+                    <Text style={styles.date}>
+                      {a ? `Atualizado em ${displayDate(a.updatedAt)}` : 'Ainda não cadastrada'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.edit} onPress={openEdit}>
+                    <Ionicons name="pencil" size={12} color="#aaa" />
+                    <Text style={styles.date}>Atualizar</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.flex}>
-                  <Text style={styles.cardTitle}>Anamnese e Objetivos</Text>
-                  <Text style={styles.date}>
-                    {a ? `Atualizado em ${displayDate(a.updatedAt)}` : 'Ainda não cadastrada'}
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.edit} onPress={openEdit}>
-                  <Ionicons name="pencil" size={12} color="#aaa" />
-                  <Text style={styles.date}>Atualizar</Text>
-                </TouchableOpacity>
+                {a ? (
+                  <>
+                    {section(
+                      'Objetivos',
+                      <>
+                        {row('Objetivo', [a.goal, a.goalDetails].filter(Boolean).join(' — '))}
+                        {row(
+                          'Frequência',
+                          [
+                            a.daysPerWeek && `${a.daysPerWeek}×/semana`,
+                            a.minutesPerSession && `${a.minutesPerSession} min`,
+                          ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        )}
+                      </>,
+                    )}
+                    {groups.slice(2).map(([title, fields]) =>
+                      section(
+                        title.slice(3),
+                        fields.map(([key, label]) => row(label, a[key])),
+                      ),
+                    )}
+                    {section('Observações do Personal', row('Observações', a.instructorNotes))}
+                  </>
+                ) : (
+                  <Text style={styles.empty}>Preencha a anamnese pelo botão Atualizar.</Text>
+                )}
               </View>
-              {a ? (
-                <>
-                  {section(
-                    'Objetivos',
-                    <>
-                      {row('Objetivo', [a.goal, a.goalDetails].filter(Boolean).join(' — '))}
-                      {row(
-                        'Frequência',
-                        [
-                          a.daysPerWeek && `${a.daysPerWeek}×/semana`,
-                          a.minutesPerSession && `${a.minutesPerSession} min`,
-                        ]
-                          .filter(Boolean)
-                          .join(' · '),
-                      )}
-                    </>,
-                  )}
-                  {groups.slice(2).map(([title, fields]) =>
-                    section(
-                      title.slice(3),
-                      fields.map(([key, label]) => row(label, a[key])),
-                    ),
-                  )}
-                  {section('Observações do Personal', row('Observações', a.instructorNotes))}
-                </>
-              ) : (
-                <Text style={styles.empty}>Preencha a anamnese pelo botão Atualizar.</Text>
-              )}
-            </View>
-          )
+            )}
+            <Avaliacoes studentId={studentId} />
+          </>
         ) : tab === 'Mensalidade' ? (
           <Text style={styles.muted}>Os dados de mensalidade ainda não estão disponíveis.</Text>
         ) : tab === 'Fichas' ? (
