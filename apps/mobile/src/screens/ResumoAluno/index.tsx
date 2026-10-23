@@ -81,11 +81,14 @@ const displayDate = (value: string) => new Date(value).toLocaleDateString('pt-BR
 export default function ResumoAlunoScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { studentId: param } = useLocalSearchParams<{ studentId: string }>()
+  const { studentId: param, tab: initialTab } = useLocalSearchParams<{
+    studentId: string
+    tab?: string
+  }>()
   const studentId = (Array.isArray(param) ? param[0] : param) ?? ''
   const { user } = useAuth()
   const cache = useQueryClient()
-  const [tab, setTab] = useState('Resumo')
+  const [tab, setTab] = useState(initialTab === 'Fichas' ? 'Fichas' : 'Resumo')
   const [choosingGoal, setChoosingGoal] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -310,17 +313,7 @@ export default function ResumoAlunoScreen() {
               </TouchableOpacity>
               {!plans.data.length && <Text style={styles.muted}>Nenhuma ficha cadastrada.</Text>}
               {plans.data.map((plan) => (
-                <TouchableOpacity
-                  key={plan.id}
-                  accessibilityRole="button"
-                  style={styles.card}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(instrutor)/ficha',
-                      params: { studentId, planId: plan.id },
-                    })
-                  }
-                >
+                <View key={plan.id} style={styles.card}>
                   {section(
                     plan.name,
                     <>
@@ -333,13 +326,37 @@ export default function ResumoAlunoScreen() {
                         `${plan.startsOn.split('-').reverse().join('/')} — ${plan.endsOn.split('-').reverse().join('/')}`,
                       )}
                       {row('Divisões', plan.labels.join(' · '))}
-                      {row(
-                        'Ao tocar',
-                        plan.status === 'DRAFT' ? 'Editar rascunho' : 'Nova ficha a partir desta',
-                      )}
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        style={styles.viewPlan}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(instrutor)/visualizar-ficha',
+                            params: { planId: plan.id },
+                          })
+                        }
+                      >
+                        <Text style={styles.viewPlanText}>Visualizar Treino Completo</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        style={styles.edit}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(instrutor)/ficha',
+                            params: { studentId, planId: plan.id },
+                          })
+                        }
+                      >
+                        <Text style={styles.cardTitle}>
+                          {plan.status === 'DRAFT'
+                            ? 'Editar rascunho'
+                            : 'Nova ficha a partir desta'}
+                        </Text>
+                      </TouchableOpacity>
                     </>,
                   )}
-                </TouchableOpacity>
+                </View>
               ))}
             </>
           )
@@ -523,6 +540,14 @@ export default function ResumoAlunoScreen() {
   )
 }
 const styles = StyleSheet.create({
+  viewPlan: {
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  viewPlanText: { color: '#FF3B30', fontSize: 12, fontFamily: 'SpaceGrotesk_700Bold' },
   editorSectionHeader: {
     backgroundColor: '#161616',
     padding: 14,

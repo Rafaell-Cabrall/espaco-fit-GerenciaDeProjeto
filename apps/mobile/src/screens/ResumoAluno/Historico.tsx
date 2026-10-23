@@ -17,6 +17,7 @@ import {
 import { z } from 'zod'
 import { api } from '@/api/client'
 import { maskDate } from '../NovoAluno/form'
+import { DetalhesTreino } from './DetalhesTreino'
 
 const isoDay = (value: string) => {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null
@@ -175,7 +176,7 @@ export function Historico({
           const tags = session.division.title
             .replace(/^.*?\(/, '')
             .replace(/\)$/, '')
-            .split(/\s+(?:e|E)\s+|\s*\+\s*/)
+            .split(/\s+(?:e|E)\s+|\s*[+&]\s*/)
             .filter(Boolean)
           return (
             <View key={session.id} style={styles.card}>
@@ -185,7 +186,7 @@ export function Historico({
                 style={styles.sessionHeader}
                 onPress={() => setExpanded(open ? null : session.id)}
               >
-                <View style={styles.dot} />
+                <View style={[styles.dot, open && styles.activeDot]} />
                 <View style={styles.flex}>
                   <Text style={styles.date}>
                     {timestamp(session.finishedAt || session.startedAt)}
@@ -201,31 +202,13 @@ export function Historico({
                     ))}
                   </View>
                 </View>
-                <Ionicons name={open ? 'chevron-up' : 'chevron-down'} color="#888" size={17} />
+                <Ionicons
+                  name={open ? 'chevron-up' : 'chevron-down'}
+                  color={open ? '#FF3B30' : '#888'}
+                  size={17}
+                />
               </TouchableOpacity>
-              {open && (
-                <View style={styles.details}>
-                  <Text style={styles.small}>
-                    {session.sets.length} séries registradas ·{' '}
-                    {new Set(session.sets.map((set) => set.divisionExerciseId)).size} exercícios
-                  </Text>
-                  {session.sets.map((set) => (
-                    <Text key={`${set.divisionExerciseId}-${set.setNumber}`} style={styles.small}>
-                      Série {set.setNumber} ·{' '}
-                      {set.loadKg === null ? 'Peso corporal / sem carga' : `${set.loadKg} kg`}
-                    </Text>
-                  ))}
-                  {session.notes.length > 0 && (
-                    <Text style={styles.reference}>Comentários do aluno</Text>
-                  )}
-                  {session.notes.map((note) => (
-                    <View key={note.divisionExerciseId}>
-                      <Text style={styles.reference}>{note.exercise}</Text>
-                      <Text style={styles.small}>{note.text}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {open && <DetalhesTreino session={session} studentId={studentId} />}
             </View>
           )
         })
@@ -292,6 +275,7 @@ export function Historico({
   )
 }
 const styles = StyleSheet.create({
+  activeDot: { backgroundColor: '#FF3B30' },
   content: { gap: 10 },
   flex: { flex: 1 },
   toolbar: {
