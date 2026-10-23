@@ -25,12 +25,6 @@ import { birthDateInfo, maskDate } from '../NovoAluno/form'
 import { composition, type FieldKey, perimeters } from './shared'
 
 const todayBr = () => dateKey(new Date()).split('-').reverse().join('/')
-const placeholders: Partial<Record<FieldKey, string>> = {
-  weightKg: '76.5',
-  heightCm: '1.68',
-  bodyFatPct: '18.2',
-  leanMassKg: '62.6',
-}
 
 export default function NovaAvaliacaoScreen() {
   const router = useRouter()
@@ -103,7 +97,7 @@ export default function NovaAvaliacaoScreen() {
           value={values[key] ?? ''}
           onChangeText={(text) => setValues((previous) => ({ ...previous, [key]: text }))}
           keyboardType="decimal-pad"
-          placeholder={placeholders[key] ?? '0'}
+          placeholder={key === 'heightCm' ? '1.68' : '0'}
           placeholderTextColor="#555"
           maxLength={6}
         />

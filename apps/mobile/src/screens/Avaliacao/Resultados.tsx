@@ -92,7 +92,8 @@ export default function ResultadosAvaliacaoScreen() {
                       {value ?? '—'}
                       {value != null && <Text style={styles.unit}> {unit}</Text>}
                     </Text>
-                    {key !== 'heightCm' && (
+                    {/* Altura e massa magra sem seta, como no protótipo: subir massa magra não é ruim */}
+                    {key !== 'heightCm' && key !== 'leanMassKg' && (
                       <DeltaBadge value={delta(value, shown(previous, key))} />
                     )}
                   </View>
