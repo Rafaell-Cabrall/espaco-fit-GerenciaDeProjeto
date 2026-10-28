@@ -11,7 +11,7 @@ import { dayInSaoPaulo } from '../sessions/frequency.ts'
 const select = {
   id: true,
   date: true,
-  hour: true,
+  time: true,
   student: { select: { id: true, name: true } },
 } satisfies Prisma.AppointmentSelect
 
@@ -31,19 +31,19 @@ appointmentsRouter.get('/', async (req, res) => {
   const { from, to } = appointmentsQuerySchema.parse(req.query)
   const rows = await prisma.appointment.findMany({
     where: { instructorId: req.user.id, date: { gte: new Date(from), lte: new Date(to) } },
-    orderBy: [{ date: 'asc' }, { hour: 'asc' }],
+    orderBy: [{ date: 'asc' }, { time: 'asc' }],
     select,
   })
   res.json(rows.map(toAppointment))
 })
 
 appointmentsRouter.post('/', validate(createAppointmentSchema), requireLink, async (req, res) => {
-  const { studentId, date, hour } = req.body
+  const { studentId, date, time } = req.body
   if (date < dayInSaoPaulo(new Date()))
     throw new HttpError(422, 'Escolha uma data a partir de hoje')
   try {
     const row = await prisma.appointment.create({
-      data: { instructorId: req.user.id, studentId, date: new Date(date), hour },
+      data: { instructorId: req.user.id, studentId, date: new Date(date), time },
       select,
     })
     res.status(201).json(toAppointment(row))

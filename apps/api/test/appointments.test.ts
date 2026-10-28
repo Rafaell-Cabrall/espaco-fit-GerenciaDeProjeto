@@ -65,7 +65,7 @@ describe('agenda de avaliações', () => {
     const res = await call('POST', '/appointments', instrutor.token, {
       studentId: aluno.id,
       date: amanha,
-      hour: 8,
+      time: '08:20',
     })
     assert.equal(res.status, 201)
     created = await res.json()
@@ -74,22 +74,22 @@ describe('agenda de avaliações', () => {
     await call('POST', '/appointments', instrutor.token, {
       studentId: outroAluno.id,
       date: amanha,
-      hour: 7,
+      time: '08:00',
     })
     const items: Appointment[] = await (await list()).json()
     assert.deepEqual(
-      items.map((a) => a.hour),
-      [7, 8],
+      items.map((a) => a.time),
+      ['08:00', '08:20'],
     )
   })
 
   it('recusa horário ocupado, dia passado, aluno sem vínculo e perfil aluno', async () => {
-    const ocupado = { studentId: outroAluno.id, date: amanha, hour: 8 }
+    const ocupado = { studentId: outroAluno.id, date: amanha, time: '08:20' }
     assert.equal((await call('POST', '/appointments', instrutor.token, ocupado)).status, 409)
     const passado = { ...ocupado, date: '2020-01-01' }
     assert.equal((await call('POST', '/appointments', instrutor.token, passado)).status, 422)
     const estranho = await user('ALUNO')
-    const semVinculo = { studentId: estranho.id, date: amanha, hour: 9 }
+    const semVinculo = { studentId: estranho.id, date: amanha, time: '12:00' }
     assert.equal((await call('POST', '/appointments', instrutor.token, semVinculo)).status, 403)
     assert.equal((await list(aluno.token)).status, 403)
     assert.equal((await call('GET', '/appointments', instrutor.token)).status, 400)
