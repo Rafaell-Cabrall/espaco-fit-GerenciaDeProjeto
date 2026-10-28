@@ -15,7 +15,9 @@ export default function Layout() {
               ? 'Perfil'
               : state.routes[state.index]?.name === 'alunos'
                 ? 'Alunos'
-                : 'Home'
+                : state.routes[state.index]?.name === 'biblioteca'
+                  ? 'Biblioteca'
+                  : 'Home'
           }
         />
       )}
@@ -37,6 +39,7 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen name="alunos" options={{ title: 'Alunos' }} />
+      <Tabs.Screen name="biblioteca" options={{ title: 'Biblioteca' }} />
       <Tabs.Screen
         name="perfil"
         options={{

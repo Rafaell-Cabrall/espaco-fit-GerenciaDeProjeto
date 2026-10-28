@@ -23,7 +23,7 @@ const date = (iso: string) => iso.split('-').reverse().join('/')
 const statuses = { ACTIVE: 'Ativa', DRAFT: 'Rascunho', EXPIRED: 'Encerrada' }
 
 export default function VisualizarFichaScreen() {
-  const { planId } = useLocalSearchParams<{ planId?: string }>()
+  const { planId, studentId } = useLocalSearchParams<{ planId?: string; studentId?: string }>()
   const router = useRouter()
   const query = useQuery({
     queryKey: ['plan', planId],
@@ -32,6 +32,7 @@ export default function VisualizarFichaScreen() {
   })
   const plan = query.data
   const progress = plan ? periodProgress(plan.startsOn, plan.endsOn) : 0
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
       <View style={styles.header}>
@@ -47,18 +48,34 @@ export default function VisualizarFichaScreen() {
         </Pressable>
         <View style={styles.flex}>
           <Text style={styles.caption}>Visualizando</Text>
-          <Text accessibilityRole="header" style={styles.title}>
+          <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>
             {plan?.name ?? 'Ficha de treino'}
           </Text>
         </View>
-        {plan && (
-          <View style={[styles.badge, plan.status !== 'ACTIVE' && styles.otherBadge]}>
-            <Text style={[styles.badgeText, plan.status !== 'ACTIVE' && styles.otherBadgeText]}>
-              {statuses[plan.status]}
-            </Text>
+
+        {plan && studentId && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[styles.badge, plan.status !== 'ACTIVE' && styles.otherBadge]}>
+              <Text style={[styles.badgeText, plan.status !== 'ACTIVE' && styles.otherBadgeText]}>
+                {statuses[plan.status]}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.editButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/(instrutor)/ficha',
+                  params: { studentId, planId: plan.id },
+                })
+              }
+            >
+              <Ionicons name="create-outline" size={14} color="#FF3B30" />
+              <Text style={styles.editText}>Editar</Text>
+            </Pressable>
           </View>
         )}
       </View>
+
       {plan && (
         <View style={styles.period}>
           <View style={styles.periodLabels}>
@@ -77,6 +94,7 @@ export default function VisualizarFichaScreen() {
           </View>
         </View>
       )}
+
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

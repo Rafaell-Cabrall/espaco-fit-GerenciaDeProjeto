@@ -3,6 +3,7 @@
 // nova copiada (POST), porque a API só edita rascunho.
 import {
   createPlanSchema,
+  createTemplateSchema,
   type Exercise,
   exerciseSchema,
   MuscleGroup,
@@ -15,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -103,29 +104,79 @@ const fromPlan = (plan: Plan): Div[] =>
   }))
 
 export function EditorFichaScreen() {
-  const { studentId = '', planId } = useLocalSearchParams<{ studentId?: string; planId?: string }>()
+  const {
+    studentId = '',
+    planId,
+    templateOnly,
+    templateId,
+  } = useLocalSearchParams<{
+    studentId?: string
+    planId?: string
+    templateOnly?: string
+    templateId?: string
+  }>()
+  const isTemplate = templateOnly === 'true' || !!templateId
+  const { user } = useAuth()
   const source = useQuery({
     queryKey: ['plan', planId],
     queryFn: () => api(`/plans/${planId}`, planSchema),
     enabled: !!planId,
   })
+  const templateSource = useQuery({
+    queryKey: ['plan-templates', user?.id],
+    queryFn: () => api('/plans/templates', templateSchema.array()),
+    enabled: !!user && !!templateId,
+  })
 
-  if (!studentId) return <Status message="Abra a ficha pela tela do aluno." />
+  if (!studentId && !isTemplate) return <Status message="Abra a ficha pela tela do aluno." />
   if (planId && source.isPending) return <Status />
   if (planId && source.isError)
     return (
       <Status message={source.error.message} action="Tentar de novo" onAction={source.refetch} />
     )
+  if (templateId && templateSource.isPending) return <Status />
+  if (templateId && templateSource.isError) {
+    return (
+      <Status
+        message={templateSource.error.message}
+        action="Tentar de novo"
+        onAction={templateSource.refetch}
+      />
+    )
+  }
+  const selectedTemplate = templateSource.data?.find((template) => template.id === templateId)
+  if (templateId && !selectedTemplate) {
+    return <Status message="Template não encontrado." />
+  }
   return (
-    <Editor key={`${studentId}:${planId ?? 'new'}`} studentId={studentId} source={source.data} />
+    <Editor
+      key={`${studentId}:${planId ?? templateId ?? (isTemplate ? 'template' : 'new')}`}
+      studentId={studentId}
+      source={source.data}
+      isTemplate={isTemplate}
+      templateId={templateId}
+      sourceTemplate={selectedTemplate}
+    />
   )
 }
 
-function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
+function Editor({
+  studentId,
+  source,
+  isTemplate,
+  templateId,
+  sourceTemplate,
+}: {
+  studentId: string
+  source?: Plan
+  isTemplate: boolean
+  templateId?: string
+  sourceTemplate?: Template
+}) {
   const router = useRouter()
   const cache = useQueryClient()
   const { user } = useAuth()
-  const [building, setBuilding] = useState(!!source)
+  const [building, setBuilding] = useState(!!source || isTemplate)
   const [method, setMethod] = useState<'library' | 'scratch'>('scratch')
   const [templateSearch, setTemplateSearch] = useState('')
   const [importError, setImportError] = useState('')
@@ -137,12 +188,13 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
   const students = useQuery({
     queryKey: ['instructor-home', user?.id, 'students'],
     queryFn: () => api('/links', z.array(studentLinkSchema)),
+    enabled: !isTemplate,
   })
   const student = students.data?.find((link) => link.student.id === studentId)?.student
   const isDraft = source?.status === 'DRAFT'
   // Rascunho que este editor grava. Ficha ativa ou expirada ganha um rascunho novo no 1º salvar.
   const [draftId, setDraftId] = useState(isDraft ? source.id : null)
-  const [name, setName] = useState(source?.name ?? '')
+  const [name, setName] = useState(source?.name ?? sourceTemplate?.name ?? '')
   const [startsOn, setStartsOn] = useState(toBr(isDraft ? source.startsOn : localIso(new Date())))
   const [endsOn, setEndsOn] = useState(toBr(isDraft ? source.endsOn : inDays(90)))
   const [divisions, setDivisions] = useState<Div[]>(() =>
@@ -154,6 +206,7 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
   const [pickingMuscle, setPickingMuscle] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
+  const loadedTemplateId = useRef<string | null>(null)
   const exercises = useQuery({
     queryKey: ['exercises'],
     queryFn: () => api('/exercises', z.array(exerciseSchema)),
@@ -194,41 +247,57 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
     setPicking(true)
   }
 
-  // Valida no app com o mesmo contrato da API, com mensagens que dizem qual treino corrigir
-  const parse = () => {
+  const divisionInputs = () => {
     const populated = divisions.filter((d) => d.exercises.length || d.muscles.length)
     if (!populated.length) return 'Adicione pelo menos um exercício à ficha.'
     for (const [i, d] of populated.entries()) {
       if (!d.muscles.length) return `Escolha os grupos musculares do Treino ${LABELS[i]}.`
       if (!d.exercises.length) return `Adicione exercícios ao Treino ${LABELS[i]}.`
     }
-    const result = createPlanSchema.safeParse({
-      studentId,
-      name,
-      startsOn: toIso(startsOn),
-      endsOn: toIso(endsOn),
-      divisions: populated.map((d, i) => ({
-        label: LABELS[i],
-        title: d.muscles.join(' & '),
-        weekday: d.weekday,
-        exercises: d.exercises.map((e) => ({
-          exerciseId: e.exercise.id,
-          sets: Number(e.sets),
-          reps: e.reps.trim(),
-          restSeconds: Number(e.restSeconds),
-          targetLoadKg: e.targetLoadKg.trim() ? Number(e.targetLoadKg.replace(',', '.')) : null,
-        })),
+    return populated.map((d, i) => ({
+      label: LABELS[i],
+      title: d.muscles.join(' & '),
+      weekday: d.weekday,
+      exercises: d.exercises.map((e) => ({
+        exerciseId: e.exercise.id,
+        sets: Number(e.sets),
+        reps: e.reps.trim(),
+        restSeconds: Number(e.restSeconds),
+        targetLoadKg: e.targetLoadKg.trim() ? Number(e.targetLoadKg.replace(',', '.')) : null,
       })),
-    })
-    if (result.success) return result.data
-    const issue = result.error.issues[0]
-    // path = ['divisions', i, 'exercises', j, campo]
+    }))
+  }
+
+  const validationMessage = (issue: z.ZodIssue | undefined) => {
     const [, i, , j, field] = issue?.path ?? []
     if (typeof i === 'number' && typeof j === 'number') {
       const what = { sets: 'séries', reps: 'repetições', restSeconds: 'descanso' }[String(field)]
       return `Treino ${LABELS[i]}, exercício ${j + 1}: confira ${what ?? 'a carga'}. ${issue?.message ?? ''}`
     }
     return issue?.message ?? 'Confira os dados da ficha.'
+  }
+
+  // Valida no app com o mesmo contrato da API, com mensagens que dizem qual treino corrigir.
+  const parse = () => {
+    const inputDivisions = divisionInputs()
+    if (typeof inputDivisions === 'string') return inputDivisions
+    const result = createPlanSchema.safeParse({
+      studentId,
+      name,
+      startsOn: toIso(startsOn),
+      endsOn: toIso(endsOn),
+      divisions: inputDivisions,
+    })
+    if (result.success) return result.data
+    return validationMessage(result.error.issues[0])
+  }
+
+  const parseTemplate = () => {
+    const inputDivisions = divisionInputs()
+    if (typeof inputDivisions === 'string') return inputDivisions
+    const result = createTemplateSchema.safeParse({ name, divisions: inputDivisions })
+    if (result.success) return result.data
+    return validationMessage(result.error.issues[0])
   }
 
   const fail = (title: string, cause: unknown) =>
@@ -279,16 +348,28 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
   }
 
   const saveTemplate = async () => {
-    const data = parse()
+    const data = isTemplate ? parseTemplate() : parse()
     if (typeof data === 'string') return Alert.alert('Confira a ficha', data)
     setBusy(true)
     try {
-      await api('/plans/templates', templateSchema, {
-        method: 'POST',
-        body: { name: data.name, divisions: data.divisions },
-      })
+      const body = { name: data.name, divisions: data.divisions }
+      if (templateId) {
+        await api(`/plans/templates/${templateId}`, templateSchema, { method: 'PUT', body })
+      } else {
+        await api('/plans/templates', templateSchema, { method: 'POST', body })
+      }
       void cache.invalidateQueries({ queryKey: ['plan-templates'] })
-      Alert.alert('Modelo salvo', 'A ficha foi para a sua biblioteca de modelos.')
+      if (templateId) {
+        Alert.alert('Modelo atualizado', 'As alterações foram salvas na biblioteca.', [
+          { text: 'OK', onPress: () => router.back() },
+        ])
+      } else if (isTemplate) {
+        Alert.alert('Modelo salvo', 'O modelo foi adicionado à sua biblioteca.', [
+          { text: 'OK', onPress: () => router.back() },
+        ])
+      } else {
+        Alert.alert('Modelo salvo', 'A ficha foi para a sua biblioteca de modelos.')
+      }
     } catch (cause) {
       fail('Não foi possível salvar o modelo', cause)
     } finally {
@@ -305,42 +386,63 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
   )
   const chips = [...new Set([...MuscleGroup.options, ...division.muscles])]
 
-  const importTemplate = (template: Template) => {
-    const available = new Map(exercises.data?.map((exercise) => [exercise.id, exercise]))
-    if (template.divisions.some((d) => d.exercises.some((e) => !available.has(e.exerciseId)))) {
-      setImportError('Este modelo contém exercícios indisponíveis. Escolha outro modelo.')
-      return
+  const importTemplate = useCallback(
+    (template: Template) => {
+      const available = new Map(exercises.data?.map((exercise) => [exercise.id, exercise]))
+      if (template.divisions.some((d) => d.exercises.some((e) => !available.has(e.exerciseId)))) {
+        setImportError('Este modelo contém exercícios indisponíveis. Escolha outro modelo.')
+        return
+      }
+      setDivisions(
+        template.divisions.map((d) => ({
+          key: newKey(),
+          muscles: [
+            ...new Set([
+              ...d.title.split(' & ').filter(Boolean),
+              ...d.exercises.flatMap((e) => {
+                const exercise = available.get(e.exerciseId)
+                return exercise ? [exercise.muscleGroup] : []
+              }),
+            ]),
+          ],
+          weekday: d.weekday ?? null,
+          exercises: d.exercises.flatMap((e) => {
+            const exercise = available.get(e.exerciseId)
+            return exercise
+              ? [
+                  toItem(exercise, {
+                    ...e,
+                    restSeconds: e.restSeconds ?? 60,
+                    targetLoadKg: e.targetLoadKg ?? null,
+                  }),
+                ]
+              : []
+          }),
+        })),
+      )
+      setName(template.name)
+      setSelected(0)
+      setBuilding(true)
+    },
+    [exercises.data],
+  )
+
+  useEffect(() => {
+    if (sourceTemplate && exercises.data && loadedTemplateId.current !== sourceTemplate.id) {
+      loadedTemplateId.current = sourceTemplate.id
+      importTemplate(sourceTemplate)
     }
-    setDivisions(
-      template.divisions.map((d) => ({
-        key: newKey(),
-        muscles: [
-          ...new Set([
-            ...d.title.split(' & ').filter(Boolean),
-            ...d.exercises.flatMap((e) => {
-              const exercise = available.get(e.exerciseId)
-              return exercise ? [exercise.muscleGroup] : []
-            }),
-          ]),
-        ],
-        weekday: d.weekday ?? null,
-        exercises: d.exercises.flatMap((e) => {
-          const exercise = available.get(e.exerciseId)
-          return exercise
-            ? [
-                toItem(exercise, {
-                  ...e,
-                  restSeconds: e.restSeconds ?? 60,
-                  targetLoadKg: e.targetLoadKg ?? null,
-                }),
-              ]
-            : []
-        }),
-      })),
+  }, [sourceTemplate, exercises.data, importTemplate])
+
+  if (sourceTemplate && exercises.isPending) return <Status />
+  if (sourceTemplate && exercises.isError) {
+    return (
+      <Status
+        message={exercises.error.message}
+        action="Tentar de novo"
+        onAction={exercises.refetch}
+      />
     )
-    setName(template.name)
-    setSelected(0)
-    setBuilding(true)
   }
 
   if (!building)
@@ -497,26 +599,31 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
           <Pressable
             accessibilityLabel="Voltar"
             style={styles.backButton}
-            onPress={() => (source ? router.back() : setBuilding(false))}
+            onPress={() => (source || isTemplate ? router.back() : setBuilding(false))}
           >
             <Ionicons name="chevron-back" size={20} color={tokens.colors.textPrimary} />
           </Pressable>
           <TextInput
-            accessibilityLabel="Nome da ficha"
+            accessibilityLabel={isTemplate ? 'Nome do modelo' : 'Nome da ficha'}
             style={styles.titleInput}
             value={name}
             onChangeText={setName}
-            placeholder="Nome do treino..."
+            placeholder={isTemplate ? 'Nome do modelo...' : 'Nome do treino...'}
             maxLength={60}
             placeholderTextColor={tokens.colors.textMuted}
           />
         </View>
-        <Pressable style={styles.saveDraftButton} onPress={saveDraft} disabled={busy}>
+        <Pressable
+          style={styles.saveDraftButton}
+          onPress={isTemplate ? saveTemplate : saveDraft}
+          disabled={busy}
+        >
           <Text style={styles.saveDraftText}>{busy ? 'Salvando…' : 'Salvar'}</Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {!!importError && <Text style={styles.error}>{importError}</Text>}
         {source && !isDraft && (
           <Text style={styles.notice}>
             Ficha {source.status === 'ACTIVE' ? 'ativa' : 'expirada'} não é alterada: ao salvar,
@@ -744,49 +851,63 @@ function Editor({ studentId, source }: { studentId: string; source?: Plan }) {
                 </Pressable>
               )}
             </View>
-            <View style={styles.periodRow}>
-              {(
-                [
-                  ['Início', startsOn, setStartsOn],
-                  ['Fim', endsOn, setEndsOn],
-                ] as const
-              ).map(([title, value, set]) => (
-                <View key={title} style={styles.controlGroup}>
-                  <Text style={styles.controlLabel}>{title}</Text>
-                  <TextInput
-                    accessibilityLabel={`${title} da ficha`}
-                    style={[styles.controlStepper, styles.stepperVal]}
-                    value={value}
-                    onChangeText={(text) => set(maskDate(text))}
-                    placeholder="DD/MM/AAAA"
-                    placeholderTextColor={tokens.colors.textMuted}
-                    keyboardType="number-pad"
-                  />
-                </View>
-              ))}
-            </View>
+            {!isTemplate && (
+              <View style={styles.periodRow}>
+                {(
+                  [
+                    ['Início', startsOn, setStartsOn],
+                    ['Fim', endsOn, setEndsOn],
+                  ] as const
+                ).map(([title, value, set]) => (
+                  <View key={title} style={styles.controlGroup}>
+                    <Text style={styles.controlLabel}>{title}</Text>
+                    <TextInput
+                      accessibilityLabel={`${title} da ficha`}
+                      style={[styles.controlStepper, styles.stepperVal]}
+                      value={value}
+                      onChangeText={(text) => set(maskDate(text))}
+                      placeholder="DD/MM/AAAA"
+                      placeholderTextColor={tokens.colors.textMuted}
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
 
             <View style={styles.publishSection}>
-              <View style={styles.notifyRow}>
-                <Text style={styles.notifyText}>Notificar aluno</Text>
-                <Switch
-                  value={notify}
-                  onValueChange={setNotify}
-                  trackColor={{ false: tokens.colors.surface, true: tokens.colors.primary }}
-                  thumbColor={tokens.colors.textPrimary}
-                />
-              </View>
-              <Pressable style={styles.btnPrimary} onPress={publish} disabled={busy}>
-                <Text style={styles.btnPrimaryText}>{busy ? 'Aguarde…' : 'Publicar Ficha'}</Text>
-              </Pressable>
-              <Pressable style={styles.btnSecondary} onPress={saveTemplate} disabled={busy}>
-                <Text style={styles.btnSecondaryText}>Salvar como Modelo</Text>
-              </Pressable>
+              {isTemplate ? (
+                <Pressable style={styles.btnPrimary} onPress={saveTemplate} disabled={busy}>
+                  <Text style={styles.btnPrimaryText}>
+                    {busy ? 'Salvando…' : 'Salvar Template'}
+                  </Text>
+                </Pressable>
+              ) : (
+                <>
+                  <View style={styles.notifyRow}>
+                    <Text style={styles.notifyText}>Notificar aluno</Text>
+                    <Switch
+                      value={notify}
+                      onValueChange={setNotify}
+                      trackColor={{ false: tokens.colors.surface, true: tokens.colors.primary }}
+                      thumbColor={tokens.colors.textPrimary}
+                    />
+                  </View>
+                  <Pressable style={styles.btnPrimary} onPress={publish} disabled={busy}>
+                    <Text style={styles.btnPrimaryText}>
+                      {busy ? 'Aguarde…' : 'Publicar Ficha'}
+                    </Text>
+                  </Pressable>
+                  <Pressable style={styles.btnSecondary} onPress={saveTemplate} disabled={busy}>
+                    <Text style={styles.btnSecondaryText}>Salvar como Modelo</Text>
+                  </Pressable>
+                </>
+              )}
             </View>
           </>
         )}
       </ScrollView>
-      <InstructorTabBar active="Alunos" disabled={busy} />
+      {!isTemplate && <InstructorTabBar active="Alunos" disabled={busy} />}
 
       <Modal
         visible={picking}
