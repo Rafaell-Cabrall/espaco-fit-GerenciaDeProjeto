@@ -1,6 +1,5 @@
 // Evolução do aluno: Resumo (metas do mês), Anamnese e Frequência (calendário por mês).
-// Medidas corporais entram com a avaliação física (Sprint 3); até lá os cards mostram "—".
-import { anamnesisSchema } from '@espacofit/shared'
+import { anamnesisSchema, lastMonthBaseline } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
@@ -11,6 +10,7 @@ import { useAuth } from '@/auth'
 import { Status } from '@/components/Status'
 import { tokens } from '@/design-system/tokens'
 import { useFrequency } from '@/hooks/useFrequency'
+import { useMeasurements } from '@/hooks/useMeasurements'
 import { styles } from './styles'
 
 type TabOption = 'Resumo' | 'Anamnese' | 'Frequência'
@@ -31,11 +31,11 @@ const MONTH_NAMES = [
 ]
 const WEEK_DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 const MEDIDAS = [
-  { label: 'Peso', unit: 'kg' },
-  { label: 'IMC', unit: '' },
-  { label: 'Gordura', unit: '%' },
-  { label: 'Músculo', unit: 'kg' },
-]
+  { key: 'weightKg', label: 'Peso', unit: 'kg' },
+  { key: 'bmi', label: 'IMC', unit: '' },
+  { key: 'bodyFatPct', label: 'Gordura', unit: '%' },
+  { key: 'muscleKg', label: 'Músculo', unit: 'kg' },
+] as const
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const dateKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -66,11 +66,32 @@ function Meta({ title, value, progress }: { title: string; value: string; progre
   )
 }
 
+function formatMeasure(value: number, unit: string) {
+  const formatted = value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  return unit ? `${formatted} ${unit}` : formatted
+}
+
+function measureChange(current: number | null | undefined, baseline: number | null | undefined) {
+  if (current == null || baseline == null) return 'Sem comparação do mês passado'
+  const difference = Math.round((current - baseline) * 10) / 10
+  if (!difference) return 'Sem variação desde o mês passado'
+  const formatted = Math.abs(difference).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  return `${difference > 0 ? '+' : '−'}${formatted} desde o mês passado`
+}
+
 function ResumoTab() {
   const frequency = useFrequency()
   const anamnesis = useAnamnesis()
+  const { user } = useAuth()
+  const measurements = useMeasurements(user?.id ?? '')
 
-  if (frequency.isPending || anamnesis.isPending) return <Status />
+  if (frequency.isPending || anamnesis.isPending || measurements.isPending) return <Status />
   if (frequency.isError)
     return (
       <Status
@@ -79,7 +100,17 @@ function ResumoTab() {
         onAction={frequency.refetch}
       />
     )
+  if (measurements.isError)
+    return (
+      <Status
+        message={measurements.error.message}
+        action="Tentar de novo"
+        onAction={measurements.refetch}
+      />
+    )
 
+  const latest = measurements.data[0]
+  const baseline = lastMonthBaseline(measurements.data)
   const today = new Date()
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
   const done = frequency.data.monthCount
@@ -92,16 +123,25 @@ function ResumoTab() {
       <View>
         <Text style={styles.sectionTitle}>MEDIDAS CORPORAIS</Text>
         <View style={styles.medidasGrid}>
-          {MEDIDAS.map((medida) => (
-            <View key={medida.label} style={styles.medidaCard}>
-              <Text style={styles.medidaLabel}>{medida.label}</Text>
-              <View style={styles.medidaValueRow}>
-                <Text style={styles.medidaValue}>—</Text>
-                {!!medida.unit && <Text style={styles.medidaUnit}>{medida.unit}</Text>}
+          {MEDIDAS.map((medida) => {
+            const value = latest?.[medida.key]
+            const previous = baseline?.[medida.key]
+            return (
+              <View key={medida.label} style={styles.medidaCard}>
+                <Text style={styles.medidaLabel}>{medida.label}</Text>
+                <View style={styles.medidaValueRow}>
+                  <Text style={styles.medidaValue}>
+                    {value == null ? '—' : formatMeasure(value, medida.unit)}
+                  </Text>
+                </View>
+                <Text style={styles.medidaHint}>
+                  {latest
+                    ? `${measureChange(value, previous)} · Avaliação ${latest.measuredOn.split('-').reverse().join('/')}`
+                    : 'Sem avaliação física registrada'}
+                </Text>
               </View>
-              <Text style={styles.medidaHint}>Após a avaliação física</Text>
-            </View>
-          ))}
+            )
+          })}
         </View>
       </View>
 

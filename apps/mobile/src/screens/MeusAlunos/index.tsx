@@ -1,7 +1,7 @@
 import { Goal, studentLinkSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
@@ -36,6 +36,8 @@ const normalize = (text: string) =>
     .trim()
 export default function MeusAlunosScreen() {
   const router = useRouter()
+  const { action } = useLocalSearchParams<{ action?: string }>()
+  const selectingForPlan = action === 'new-plan'
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [goal, setGoal] = useState<string | null>(null)
@@ -59,7 +61,9 @@ export default function MeusAlunosScreen() {
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <View style={styles.heading}>
-          <Text style={styles.title}>Meus Alunos</Text>
+          <Text style={styles.title}>
+            {selectingForPlan ? 'Selecione um aluno' : 'Meus Alunos'}
+          </Text>
           <TouchableOpacity
             accessibilityLabel="Cadastrar novo aluno"
             style={styles.add}
@@ -125,20 +129,31 @@ export default function MeusAlunosScreen() {
             <Text style={styles.muted}>
               {search || goal
                 ? 'Nenhum aluno encontrado para esta busca.'
-                : 'Você ainda não tem alunos vinculados. Use o botão acima para cadastrar.'}
+                : selectingForPlan
+                  ? 'Não há alunos vinculados para criar uma ficha.'
+                  : 'Você ainda não tem alunos vinculados. Use o botão acima para cadastrar.'}
             </Text>
           }
           renderItem={({ item: { student } }) => (
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel={`Consultar ${student.name}`}
-              style={styles.card}
-              onPress={() =>
-                router.push({
-                  pathname: '/(instrutor)/students/[studentId]',
-                  params: { studentId: student.id },
-                })
+              accessibilityLabel={
+                selectingForPlan ? `Criar ficha para ${student.name}` : `Consultar ${student.name}`
               }
+              style={styles.card}
+              onPress={() => {
+                if (selectingForPlan) {
+                  router.push({
+                    pathname: '/(instrutor)/ficha',
+                    params: { studentId: student.id },
+                  })
+                } else {
+                  router.push({
+                    pathname: '/(instrutor)/students/[studentId]',
+                    params: { studentId: student.id },
+                  })
+                }
+              }}
             >
               <View style={styles.avatar}>
                 <Text style={styles.initials}>{initials(student.name)}</Text>

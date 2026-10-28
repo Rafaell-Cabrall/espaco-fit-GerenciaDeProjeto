@@ -1,0 +1,145 @@
+import { StyleSheet } from 'react-native'
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    marginBottom: 16,
+  },
+  heading: {
+    fontSize: 24,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#FFFFFF',
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  search: {
+    backgroundColor: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 46,
+    color: '#FFFFFF',
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+  },
+  newTemplateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  newTemplateText: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#FF3B30',
+  },
+  templateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  templateCard: {
+    width: '48%',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    minHeight: 100,
+    justifyContent: 'space-between',
+  },
+  templateIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  templateTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+  categoriesContainer: {
+    gap: 8,
+    marginTop: 8,
+  },
+  categoryCard: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    overflow: 'hidden',
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  categoryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  categoryName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_500Medium',
+  },
+  badge: {
+    backgroundColor: '#2A2A2A',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  badgeText: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+  exerciseList: {
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
+    paddingVertical: 4,
+  },
+  exerciseItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  exerciseItemText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_400Regular',
+  },
+  emptyText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_400Regular',
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+})

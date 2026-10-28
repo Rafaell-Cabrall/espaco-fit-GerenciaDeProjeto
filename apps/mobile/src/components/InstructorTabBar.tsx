@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { type RelativePathString, useRouter } from 'expo-router'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const items = [
   { label: 'Home', icon: 'home', route: '/(instrutor)/(tabs)' },
   { label: 'Alunos', icon: 'people-outline', route: '/(instrutor)/(tabs)/alunos' },
-  { label: 'Biblioteca', icon: 'document-text-outline', route: null },
+  { label: 'Biblioteca', icon: 'document-text-outline', route: '/(instrutor)/(tabs)/biblioteca' },
   { label: 'Perfil', icon: 'person', route: '/(instrutor)/(tabs)/perfil' },
 ] as const
 
@@ -37,8 +37,8 @@ export function InstructorTabBar({
               onPress={() => {
                 if (item.route) {
                   onNavigate?.()
-                  router.navigate(item.route)
-                } else Alert.alert(item.label, 'Esta funcionalidade ainda não está disponível.')
+                  router.navigate(item.route as RelativePathString)
+                }
               }}
             >
               {selected && <View style={styles.indicator} />}

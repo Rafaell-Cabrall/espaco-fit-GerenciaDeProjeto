@@ -31,6 +31,17 @@ export const styles = StyleSheet.create({
   badgeText: { color: '#2ACA59', fontFamily: tokens.fonts.medium, fontSize: 10, lineHeight: 16 },
   otherBadge: { backgroundColor: '#292929' },
   otherBadgeText: { color: '#aaa' },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#1C1C1E',
+  },
+  editText: { color: '#FF3B30', fontFamily: tokens.fonts.medium, fontSize: 11 },
   period: {
     paddingHorizontal: 18,
     paddingVertical: 12,

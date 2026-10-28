@@ -339,7 +339,7 @@ export default function ResumoAlunoScreen() {
                         onPress={() =>
                           router.push({
                             pathname: '/(instrutor)/visualizar-ficha',
-                            params: { planId: plan.id },
+                            params: { planId: plan.id, studentId },
                           })
                         }
                       >
