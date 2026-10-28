@@ -1,5 +1,6 @@
 // fetch + zod. Renova o access token uma vez em 401 usando o refresh token do SecureStore.
 import { authResponseSchema } from '@espacofit/shared'
+import { onlineManager } from '@tanstack/react-query'
 import Constants from 'expo-constants'
 import * as SecureStore from 'expo-secure-store'
 import type { ZodType } from 'zod'
@@ -35,6 +36,17 @@ export class ApiError extends Error {
 // AbortController na mão porque AbortSignal.timeout não é garantido no Hermes.
 const TIMEOUT_MS = 10_000
 
+// Sem resposta da API = Modo Offline (RNF03). O TanStack pausa consultas e a fila de escritas (o
+// cache persistido continua na tela) e um ping descobre a volta da conexão. Sem NetInfo: o
+// navegador do RN não avisa quando a rede cai.
+let probe: ReturnType<typeof setInterval> | undefined
+function setOnline(online: boolean) {
+  if (online === onlineManager.isOnline()) return
+  onlineManager.setOnline(online)
+  clearInterval(probe)
+  if (!online) probe = setInterval(() => raw('/health', {}, false).catch(() => {}), 15_000)
+}
+
 async function raw(path: string, init: RequestInit, auth: boolean) {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   if (auth) {
@@ -44,8 +56,11 @@ async function raw(path: string, init: RequestInit, auth: boolean) {
   const abort = new AbortController()
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS)
   try {
-    return await fetch(BASE + path, { ...init, headers, signal: abort.signal })
+    const res = await fetch(BASE + path, { ...init, headers, signal: abort.signal })
+    setOnline(true)
+    return res
   } catch {
+    setOnline(false)
     // status 0 = não chegou na API. A URL na mensagem é o que acha IP errado em minutos.
     throw new ApiError(0, `Sem resposta de ${BASE}. A API está no ar e o IP está certo?`)
   } finally {

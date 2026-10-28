@@ -109,8 +109,8 @@ Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do 
 - [x] `billing`: planos e assinatura (API pronta para o front da Sprint 4)
 
 **Front: Instrutor (obrigatório)**
-- [ ] Aba Biblioteca: busca, "Novo Template", meus templates, exercícios por categoria com contagem (agrupados no app pelo `muscleGroup`); template aberto só para leitura com "Editar", e a edição reaproveita o editor de ficha
-- [ ] Nova Ficha pela Home: buscar aluno → "Como deseja criar?" (Importar da Biblioteca ou Criar do Zero) → editor de ficha que já existe
+- [x] Aba Biblioteca: busca, "Novo Template", meus templates, exercícios por categoria com contagem (agrupados no app pelo `muscleGroup`); template aberto só para leitura com "Editar", e a edição reaproveita o editor de ficha
+- [x] Nova Ficha pela Home: buscar aluno → "Como deseja criar?" (Importar da Biblioteca ou Criar do Zero) → editor de ficha que já existe
 - [ ] Feedbacks Recentes: lista com não lidos, marca como lido e "Ajustar Treino" abre a ficha do aluno (API pronta)
 - [ ] Agenda ligada à API: a tela e o "Qual aluno fará a avaliação?" já existem, mas gravam no AsyncStorage do aparelho
 - [ ] Perfil do aluno: Nova Avaliação, Resultados da Avaliação, lista de avaliações e Evolução Comparativa na aba Resumo
@@ -118,9 +118,9 @@ Base: protótipos Instrutor V1 e Alunos V1 exportados em 07/10. O protótipo do 
 - [ ] Home: Resumo do Dia (avaliações de hoje + "Ver Agenda") e Aviso da Academia vindo do feed
 
 **Front: Aluno (obrigatório)**
-- [ ] Offline (cache persistido da ficha + fila de mutações com retry, banner "Modo Offline", RNF03)
-- [ ] Evolução > Resumo com as medidas reais (peso, IMC, gordura, músculo) e a variação desde o mês passado; hoje os cards mostram "—"
-- [ ] Home com Aviso da Academia vindo do feed (estado vazio e cache)
+- [x] Offline (cache persistido da ficha + fila de mutações com retry, banner "Modo Offline", RNF03)
+- [x] Evolução > Resumo com as medidas reais (peso, IMC, gordura, músculo) e a variação desde o mês passado; hoje os cards mostram "—"
+- [x] Home com Aviso da Academia vindo do feed (estado vazio e cache)
 
 **Front (se sobrar tempo)**
 - [ ] Aluno: modal de demonstração do exercício na execução (GIF grande + descrição do exercício)

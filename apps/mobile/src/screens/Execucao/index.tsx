@@ -1,27 +1,24 @@
 // Execução do treino (RU02): carga por série, concluir série, cronômetro de descanso com som.
 // A sessão só é criada na primeira série concluída: abrir e sair sem treinar não deixa rastro.
-// Todas as escritas passam por uma fila: marcar e desmarcar rápido chegam na API na ordem certa,
-// e "Finalizar" espera as séries pendentes (RN03 conta o que já chegou no servidor).
+// Todas as escritas passam pela fila de src/api/sync.ts: marcar e desmarcar rápido chegam na API na
+// ordem certa, "Finalizar" vai depois das séries (RN03 conta o que chegou no servidor) e, sem
+// rede, tudo espera no aparelho e o treino termina igual (RNF03).
 
-import {
-  type PlanExercise,
-  sessionSchema,
-  setLogInputSchema,
-  setLogSchema,
-} from '@espacofit/shared'
+import { type PlanExercise, setLogInputSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio'
 import * as Haptics from 'expo-haptics'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Alert, KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { z } from 'zod'
-import { ApiError, api } from '@/api/client'
+import { ApiError } from '@/api/client'
+import { newId, type SyncOp, useSync } from '@/api/sync'
 import { Button } from '@/components/Button'
 import { ExerciseThumb } from '@/components/ExerciseThumb'
 import { Field } from '@/components/Field'
+import { OfflineBanner } from '@/components/OfflineBanner'
 import { Status } from '@/components/Status'
 import { Text } from '@/components/Text'
 import { tokens } from '@/design-system/tokens'
@@ -42,8 +39,9 @@ export function ExecucaoScreen() {
   const plan = usePlan()
   const beep = useAudioPlayer(require('../../../assets/descanso.wav'))
 
-  const sessionId = useRef<string>(null)
-  const queue = useRef<Promise<unknown>>(Promise.resolve())
+  // Id gerado no app: a fila pode reenviar o início do treino sem criar outro
+  const sessionId = useRef(newId())
+  const startedAt = useRef<number>(null)
   const restAlarm = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const [open, setOpen] = useState<string | null>()
@@ -59,17 +57,16 @@ export function ExecucaoScreen() {
     return () => clearTimeout(restAlarm.current)
   }, [])
 
-  const enqueue = <T,>(op: () => Promise<T>) => {
-    const next = queue.current.then(op)
-    queue.current = next.catch(() => {})
-    return next
-  }
+  const sync = useSync()
+  const send = (op: SyncOp) => sync.mutateAsync(op)
 
-  const ensureSession = async () => {
-    sessionId.current ??= (
-      await api('/sessions', sessionSchema, { method: 'POST', body: { divisionId } })
-    ).id
-    return sessionId.current
+  // A fila leva o início antes das séries
+  const ensureSession = () => {
+    if (startedAt.current !== null) return
+    startedAt.current = Date.now()
+    send({ path: '/sessions', method: 'POST', body: { id: sessionId.current, divisionId } }).catch(
+      () => {},
+    )
   }
 
   const division = plan.data?.divisions.find((d) => d.id === divisionId)
@@ -78,56 +75,44 @@ export function ExecucaoScreen() {
   // "Sair do treino": descarta a sessão aberta (RN03)
   const discard = () => {
     clearTimeout(restAlarm.current)
-    // Dentro da fila: a criação da sessão pode estar em voo e só existir depois dela
-    enqueue(async () => {
-      if (sessionId.current)
-        await api(`/sessions/${sessionId.current}`, z.undefined(), { method: 'DELETE' })
-    }).catch(() => {})
+    // Pela fila: o início do treino pode ainda não ter chegado na API
+    if (startedAt.current !== null)
+      send({ path: `/sessions/${sessionId.current}`, method: 'DELETE' }).catch(() => {})
     router.back()
   }
 
-  const finish = useMutation({
-    mutationFn: () =>
-      enqueue(async () => {
-        const id = await ensureSession()
-        const filled = Object.fromEntries(Object.entries(notes).filter(([, t]) => t.trim()))
-        return api(`/sessions/${id}/finish`, sessionSchema, {
-          method: 'POST',
-          body: { notes: filled },
-        })
-      }),
-    onSuccess: (session) => {
-      clearTimeout(restAlarm.current)
+  // onSuccess aqui, e não no envio: roda mesmo se a fila só enviar depois de sair da tela
+  const finish = useSync({
+    onSuccess: () => {
       // Treino do dia avança para a próxima divisão (RN08) e a carga sugerida muda
       queryClient.invalidateQueries({ queryKey: ['plan'] })
       queryClient.invalidateQueries({ queryKey: ['frequency'] })
-      const ms = Date.parse(session.finishedAt ?? '') - Date.parse(session.startedAt)
-      router.replace({
-        pathname: '/(aluno)/treino/concluido',
-        params: {
-          title: division ? `Treino ${division.label} — ${division.title}` : '',
-          sets: session.sets.length,
-          exercises: new Set(session.sets.map((s) => s.divisionExerciseId)).size,
-          minutes: Math.max(1, Math.round(ms / 60_000)),
-        },
-      })
-    },
-    onError: (e) => {
-      // RN03: o botão só libera com série marcada, mas a série pode não ter chegado ao servidor
-      // (sem rede, ou desmarcada em outra tentativa). Aí o treino não conta: continuar ou sair.
-      if (e instanceof ApiError && e.status === 422) {
-        return Alert.alert(
-          'Nenhum exercício concluído',
-          'Nenhuma série foi registrada neste treino. Conclua ao menos uma série para contabilizar o treino ou saia sem salvar.',
-          [
-            { text: 'Continuar treino', style: 'cancel' },
-            { text: 'Sair do treino', style: 'destructive', onPress: discard },
-          ],
-        )
-      }
-      Alert.alert('Não foi possível finalizar', e.message)
     },
   })
+
+  const finishError = (e: Error) => {
+    // RN03: o botão só libera com série marcada, mas a série pode ter sido recusada pela API
+    // (ou desmarcada em outra tentativa). Aí o treino não conta: continuar ou sair.
+    if (e instanceof ApiError && e.status === 422) {
+      return Alert.alert(
+        'Nenhum exercício concluído',
+        'Nenhuma série foi registrada neste treino. Conclua ao menos uma série para contabilizar o treino ou saia sem salvar.',
+        [
+          { text: 'Continuar treino', style: 'cancel' },
+          { text: 'Sair do treino', style: 'destructive', onPress: discard },
+        ],
+      )
+    }
+    Alert.alert('Não foi possível finalizar', e.message)
+  }
+
+  const finishWorkout = () => {
+    const filled = Object.fromEntries(Object.entries(notes).filter(([, t]) => t.trim()))
+    finish.mutate(
+      { path: `/sessions/${sessionId.current}/finish`, method: 'POST', body: { notes: filled } },
+      { onError: finishError },
+    )
+  }
 
   if (plan.isPending) return <Status />
   if (plan.isError)
@@ -166,12 +151,8 @@ export function ExecucaoScreen() {
       Alert.alert('Carga inválida', 'Informe a carga em kg, por exemplo 22,5. Vazio = sem carga.')
       return null
     }
-    return enqueue(async () =>
-      api(`/sessions/${await ensureSession()}/sets`, setLogSchema, {
-        method: 'PUT',
-        body: input.data,
-      }),
-    )
+    ensureSession()
+    return send({ path: `/sessions/${sessionId.current}/sets`, method: 'PUT', body: input.data })
   }
 
   const startRest = (key: string, seconds: number) => {
@@ -194,11 +175,7 @@ export function ExecucaoScreen() {
     const key = keyOf(item, set)
     const wasDone = !!done[key]
     const request = wasDone
-      ? enqueue(async () =>
-          api(`/sessions/${await ensureSession()}/sets/${item.id}/${set}`, z.undefined(), {
-            method: 'DELETE',
-          }),
-        )
+      ? send({ path: `/sessions/${sessionId.current}/sets/${item.id}/${set}`, method: 'DELETE' })
       : saveSet(item, set)
     if (!request) return
 
@@ -232,6 +209,24 @@ export function ExecucaoScreen() {
     range(item.sets).every((set) => done[keyOf(item, set)]),
   ).length
 
+  // Resumo calculado no app: sem rede o "Finalizar" fica pausado na fila e o treino termina igual
+  if (finish.isSuccess || finish.isPaused)
+    return (
+      <Redirect
+        href={{
+          pathname: '/(aluno)/treino/concluido',
+          params: {
+            title: `Treino ${division.label} — ${division.title}`,
+            sets: doneCount,
+            exercises: division.exercises.filter((item) =>
+              range(item.sets).some((set) => done[keyOf(item, set)]),
+            ).length,
+            minutes: Math.max(1, Math.round((Date.now() - (startedAt.current ?? 0)) / 60_000)),
+          },
+        }}
+      />
+    )
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -260,6 +255,7 @@ export function ExecucaoScreen() {
 
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <OfflineBanner />
           {division.exercises.map((item) => {
             const isOpen = item.id === current
             const load = suggested(item)
@@ -385,7 +381,7 @@ export function ExecucaoScreen() {
         <View style={styles.footer}>
           <Button
             title="Finalizar Treino"
-            onPress={() => finish.mutate()}
+            onPress={finishWorkout}
             disabled={doneCount === 0}
             loading={finish.isPending}
           />

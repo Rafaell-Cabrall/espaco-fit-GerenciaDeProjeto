@@ -10,6 +10,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { Stack } from 'expo-router'
+import { registerSync } from '@/api/sync'
 import { AuthProvider } from '@/auth'
 
 // Cache persistido em AsyncStorage: ficha do dia continua visível sem rede (RNF03).
@@ -17,6 +18,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { gcTime: 1000 * 60 * 60 * 24 * 7, staleTime: 1000 * 60 } },
 })
 const persister = createAsyncStoragePersister({ storage: AsyncStorage })
+registerSync(queryClient)
 
 export default function RootLayout() {
   // Fonte do Figma. Sem ela carregada o texto piscaria na fonte do sistema.
@@ -29,7 +31,12 @@ export default function RootLayout() {
   if (!fontsLoaded) return null
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister }}
+      // Escritas que ficaram na fila quando o app fechou
+      onSuccess={() => queryClient.resumePausedMutations()}
+    >
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }} />
       </AuthProvider>

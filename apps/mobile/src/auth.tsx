@@ -3,9 +3,11 @@ import { authResponseSchema, type LoginInput, type User, userSchema } from '@esp
 import { useQueryClient } from '@tanstack/react-query'
 import * as SecureStore from 'expo-secure-store'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
-import { api, tokens } from './api/client'
+import { ApiError, api, tokens } from './api/client'
 
 const FORGET = 'forget-session'
+// Último usuário que a API confirmou: sem rede o app abre com ele e com o cache (RNF03)
+const LAST_USER = 'last-user'
 
 // Home de cada perfil. Redirecionar para "/" de dentro de um grupo não serve: o expo-router
 // resolve "/" para o index do próprio grupo, e o layout redireciona de novo em laço.
@@ -33,12 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     SecureStore.getItemAsync(FORGET)
       .then(async (forget) => {
         if (!forget) return api('/auth/me', userSchema)
-        await Promise.all([tokens.clear(), SecureStore.deleteItemAsync(FORGET)])
+        await Promise.all([
+          tokens.clear(),
+          SecureStore.deleteItemAsync(FORGET),
+          SecureStore.deleteItemAsync(LAST_USER),
+        ])
         queryClient.clear()
         return null
       })
-      .then(setUser)
-      .catch(() => setUser(null))
+      .then((me) => {
+        if (me) void SecureStore.setItemAsync(LAST_USER, JSON.stringify(me))
+        setUser(me)
+      })
+      .catch(async (e) => {
+        const last =
+          e instanceof ApiError && e.status === 0 ? await SecureStore.getItemAsync(LAST_USER) : null
+        setUser(last ? userSchema.parse(JSON.parse(last)) : null)
+      })
   }, [queryClient])
 
   const login = async (input: LoginInput, remember = true) => {
@@ -50,11 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await tokens.set(data.accessToken, data.refreshToken)
     if (remember) await SecureStore.deleteItemAsync(FORGET)
     else await SecureStore.setItemAsync(FORGET, '1')
+    await SecureStore.setItemAsync(LAST_USER, JSON.stringify(data.user))
     setUser(data.user)
   }
 
   const logout = async () => {
-    await tokens.clear()
+    await Promise.all([tokens.clear(), SecureStore.deleteItemAsync(LAST_USER)])
     // O cache do TanStack é persistido em AsyncStorage: sem limpar, a anamnese e a ficha de um
     // aluno continuariam no aparelho para o próximo login (RN09).
     queryClient.clear()

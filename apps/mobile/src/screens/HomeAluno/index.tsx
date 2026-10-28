@@ -1,5 +1,5 @@
-// Home do aluno: saudação, sequência, treino do dia (RN08) e histórico. Avisos e contrato do
-// Figma chegam com as APIs das Sprints 3 e 4.
+// Home do aluno: saudação, sequência, treino do dia (RN08), avisos da academia e histórico.
+// O contrato do Figma chega com a API da Sprint 4.
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
@@ -9,10 +9,12 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '@/auth'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
+import { OfflineBanner } from '@/components/OfflineBanner'
 import { SairModal } from '@/components/SairModal'
 import { Status } from '@/components/Status'
 import { Text } from '@/components/Text'
 import { tokens } from '@/design-system/tokens'
+import { useFeed } from '@/hooks/useFeed'
 import { useFrequency } from '@/hooks/useFrequency'
 import { usePlan } from '@/hooks/usePlan'
 import { styles } from './styles'
@@ -25,6 +27,7 @@ export function HomeAlunoScreen() {
   const router = useRouter()
   const plan = usePlan()
   const frequency = useFrequency()
+  const feed = useFeed()
   const [sair, setSair] = useState(false)
 
   if (plan.isPending) return <Status />
@@ -61,6 +64,8 @@ export function HomeAlunoScreen() {
             <Ionicons name="log-out-outline" size={20} color={tokens.colors.textPrimary} />
           </Pressable>
         </View>
+
+        <OfflineBanner />
 
         {/* Streak Card */}
         <View style={styles.streakCard}>
@@ -135,11 +140,27 @@ export function HomeAlunoScreen() {
           </Card>
         )}
 
-        {/* Avisos e contrato sem API ainda (Sprints 3 e 4): o card não inventa dados */}
-        <View style={styles.avisoCard}>
-          <Text style={styles.avisoHeader}>Aviso da Academia</Text>
-          <Text style={styles.avisoText}>Os comunicados da academia vão aparecer aqui.</Text>
-        </View>
+        {/* Avisos vigentes, mais recente primeiro. O cache persistido mostra o último sem rede */}
+        {feed.data?.length ? (
+          feed.data.map((aviso) => (
+            <View key={aviso.id} style={styles.avisoCard}>
+              <Text style={styles.avisoHeader}>Aviso da Academia</Text>
+              <Text style={styles.tileTitle}>{aviso.title}</Text>
+              <Text style={styles.avisoText}>{aviso.body}</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.avisoCard}>
+            <Text style={styles.avisoHeader}>Aviso da Academia</Text>
+            <Text style={styles.avisoText}>
+              {feed.isPending
+                ? 'Carregando avisos…'
+                : feed.isError
+                  ? 'Não foi possível carregar os avisos.'
+                  : 'Nenhum aviso da academia no momento.'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.tilesGrid}>
           <View style={styles.tile}>
