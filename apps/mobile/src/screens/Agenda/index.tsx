@@ -1,13 +1,14 @@
 // Agenda de avaliações físicas (protótipo de 28/10): escolhe o dia, o aluno e um horário livre da
 // grade; abaixo, as avaliações do dia. Tocar numa avaliação oferece o cancelamento.
-import { appointmentSchema, studentLinkSchema } from '@espacofit/shared'
+import { type Appointment, appointmentSchema, studentLinkSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -112,18 +113,33 @@ export default function AgendaScreen() {
     }
   }
 
-  const cancel = (id: string, name: string, time: string) =>
-    Alert.alert('Cancelar avaliação?', `${name} às ${time} · ${dayLabel(selectedDay)}`, [
-      { text: 'Voltar', style: 'cancel' },
-      {
-        text: 'Cancelar avaliação',
-        style: 'destructive',
-        onPress: () =>
-          api(`/appointments/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
-            .catch((cause: Error) => Alert.alert('Não foi possível cancelar', cause.message))
-            .finally(() => void cache.invalidateQueries({ queryKey: agendaKey })),
-      },
-    ])
+  // Avaliação aberta no modal de cancelamento
+  const [cancelling, setCancelling] = useState<Appointment | null>(null)
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [cancelError, setCancelError] = useState('')
+
+  const openCancel = (entry: Appointment) => {
+    setCancelling(entry)
+    setCancelError('')
+  }
+  const closeCancel = () => {
+    if (!cancelBusy) setCancelling(null)
+  }
+  const confirmCancel = async () => {
+    if (!cancelling || cancelBusy) return
+    setCancelBusy(true)
+    try {
+      await api(`/appointments/${encodeURIComponent(cancelling.id)}`, z.undefined(), {
+        method: 'DELETE',
+      })
+      setCancelling(null)
+    } catch (cause) {
+      setCancelError(cause instanceof Error ? cause.message : 'Tente de novo.')
+    } finally {
+      void cache.invalidateQueries({ queryKey: agendaKey })
+      setCancelBusy(false)
+    }
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
@@ -306,7 +322,7 @@ export default function AgendaScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${entry.time}, ${entry.student.name}, avaliação física. Toque para cancelar`}
                 style={styles.entryCard}
-                onPress={() => cancel(entry.id, entry.student.name, entry.time)}
+                onPress={() => openCancel(entry)}
               >
                 <View style={styles.avatar}>
                   <Text style={styles.red}>{initials(entry.student.name)}</Text>
@@ -323,6 +339,76 @@ export default function AgendaScreen() {
         )}
       </ScrollView>
       <InstructorTabBar />
+
+      <Modal
+        visible={cancelling !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCancel}
+      >
+        <Pressable style={styles.backdrop} onPress={closeCancel} accessibilityLabel="Fechar">
+          {/* Pressable interno segura o toque para não fechar ao tocar no cartão */}
+          <Pressable style={styles.modal} accessibilityViewIsModal>
+            <View style={styles.modalIcon}>
+              <Ionicons name="calendar-outline" size={26} color="#FF3B30" />
+            </View>
+            <Text style={styles.modalTitle}>Cancelar avaliação?</Text>
+            <Text style={styles.modalMessage}>O horário volta a ficar disponível na agenda.</Text>
+
+            {cancelling && (
+              <View style={styles.modalCard}>
+                <View style={styles.avatar}>
+                  <Text style={styles.red}>{initials(cancelling.student.name)}</Text>
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.studentName}>{cancelling.student.name}</Text>
+                  <Text style={styles.subtitle}>Avaliação Física</Text>
+                </View>
+                <View style={styles.modalWhen}>
+                  <Text style={styles.modalTime}>{cancelling.time}</Text>
+                  <Text style={styles.subtitle}>{dayLabel(selectedDay)}</Text>
+                </View>
+              </View>
+            )}
+
+            {!!cancelError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {cancelError}
+              </Text>
+            )}
+            <View style={styles.modalActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={cancelBusy}
+                onPress={closeCancel}
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  styles.keep,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.keepText}>Manter</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={cancelBusy}
+                onPress={() => void confirmCancel()}
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  styles.confirmCancel,
+                  pressed && styles.pressed,
+                ]}
+              >
+                {cancelBusy ? (
+                  <ActivityIndicator color="#FF3B30" />
+                ) : (
+                  <Text style={styles.confirmCancelText}>Cancelar</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -466,4 +552,65 @@ const styles = StyleSheet.create({
   },
   studentName: { color: '#fff', fontSize: 13, fontFamily: 'SpaceGrotesk_700Bold' },
   error: { color: '#FF7777', fontSize: 12 },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 24,
+    padding: 22,
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2A0A0D',
+    borderWidth: 1,
+    borderColor: '#5C0A12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  modalTitle: { color: '#fff', fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold' },
+  modalMessage: {
+    color: '#888',
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_400Regular',
+    textAlign: 'center',
+  },
+  modalCard: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 16,
+    padding: 12,
+    marginVertical: 6,
+  },
+  modalWhen: { alignItems: 'flex-end' },
+  modalTime: { color: '#FF3B30', fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
+  modalActions: { flexDirection: 'row', gap: 12, alignSelf: 'stretch', marginTop: 6 },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keep: { backgroundColor: '#1C1C1E' },
+  keepText: { color: '#fff', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 14 },
+  confirmCancel: { backgroundColor: '#1F0508', borderWidth: 1, borderColor: '#5C0A12' },
+  confirmCancelText: { color: '#FF3B30', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 14 },
+  pressed: { opacity: 0.6 },
 })
