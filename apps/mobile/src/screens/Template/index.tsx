@@ -9,7 +9,7 @@ import { InstructorTabBar } from '@/components/InstructorTabBar'
 import { Status } from '@/components/Status'
 import { Text } from '@/components/Text'
 import { tokens } from '@/design-system/tokens'
-import { styles } from './style'
+import { styles } from './styles'
 
 export default function TemplateDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>()

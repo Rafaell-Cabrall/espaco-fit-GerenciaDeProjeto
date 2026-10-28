@@ -1,1 +1,1 @@
-export { default } from '@/screens/Template/Index'
+export { default } from '@/screens/Template'

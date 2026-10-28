@@ -1,7 +1,7 @@
 import { Goal, studentLinkSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
@@ -36,6 +36,7 @@ const normalize = (text: string) =>
     .trim()
 export default function MeusAlunosScreen() {
   const router = useRouter()
+  const navigation = useNavigation<{ setParams: (params: { action?: string }) => void }>()
   const { action } = useLocalSearchParams<{ action?: string }>()
   const selectingForPlan = action === 'new-plan'
   const { user } = useAuth()
@@ -50,7 +51,9 @@ export default function MeusAlunosScreen() {
   useFocusEffect(
     useCallback(() => {
       void students.refetch()
-    }, [students.refetch]),
+      // A aba guarda os params: sem isso, "Nova Ficha" da Home deixa a aba Alunos presa na seleção
+      return () => navigation.setParams({ action: undefined })
+    }, [students.refetch, navigation]),
   )
   const data =
     students.data?.filter(

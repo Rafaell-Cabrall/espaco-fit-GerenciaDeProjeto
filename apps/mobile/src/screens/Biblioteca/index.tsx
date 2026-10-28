@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth'
 import { Text } from '@/components/Text'
-import { styles } from './Index'
+import { styles } from './styles'
 
 export default function BibliotecaScreen() {
   const router = useRouter()
