@@ -63,18 +63,30 @@ export default function MeusAlunosScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <View style={styles.heading}>
-          <Text style={styles.title}>
-            {selectingForPlan ? 'Selecione um aluno' : 'Meus Alunos'}
-          </Text>
-          <TouchableOpacity
-            accessibilityLabel="Cadastrar novo aluno"
-            style={styles.add}
-            onPress={() => router.push('/(instrutor)/students/new')}
-          >
-            <Ionicons name="person-add" color="#fff" size={23} />
-          </TouchableOpacity>
-        </View>
+        {/* "Nova Ficha" da Home reaproveita esta lista para escolher o aluno */}
+        {selectingForPlan ? (
+          <View style={styles.planHeading}>
+            <TouchableOpacity
+              accessibilityLabel="Voltar"
+              style={styles.back}
+              onPress={() => router.navigate('/(instrutor)/(tabs)')}
+            >
+              <Ionicons name="chevron-back" color="#fff" size={22} />
+            </TouchableOpacity>
+            <Text style={styles.planTitle}>Nova Ficha</Text>
+          </View>
+        ) : (
+          <View style={styles.heading}>
+            <Text style={styles.title}>Meus Alunos</Text>
+            <TouchableOpacity
+              accessibilityLabel="Cadastrar novo aluno"
+              style={styles.add}
+              onPress={() => router.push('/(instrutor)/students/new')}
+            >
+              <Ionicons name="person-add" color="#fff" size={23} />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.searchRow}>
           <View style={styles.search}>
             <Ionicons name="search" color="#888" size={18} />
@@ -231,6 +243,16 @@ const styles = StyleSheet.create({
   heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { color: '#fff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24 },
   add: { padding: 10 },
+  planHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  back: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#1C1C1E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planTitle: { color: '#fff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 18 },
   searchRow: { flexDirection: 'row', gap: 8 },
   search: {
     flex: 1,

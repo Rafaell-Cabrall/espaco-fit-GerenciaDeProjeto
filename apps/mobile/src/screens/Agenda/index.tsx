@@ -1,3 +1,5 @@
+// Agenda de avaliações físicas (protótipo de 28/10): escolhe o dia, o aluno e um horário livre da
+// grade; abaixo, as avaliações do dia. Tocar numa avaliação oferece o cancelamento.
 import { appointmentSchema, studentLinkSchema } from '@espacofit/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -5,9 +7,7 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,9 +20,16 @@ import { z } from 'zod'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth'
 import { InstructorTabBar } from '@/components/InstructorTabBar'
-import { agendaKey, dateKey, dayLabel, initials, openingHours, useAgenda } from './data'
-
-const time = (hour: number) => `${String(hour).padStart(2, '0')}:00`
+import {
+  agendaKey,
+  dateKey,
+  dayLabel,
+  initials,
+  isWorkday,
+  SLOTS,
+  useAgenda,
+  weekday,
+} from './data'
 
 export default function AgendaScreen() {
   const router = useRouter()
@@ -33,84 +40,91 @@ export default function AgendaScreen() {
     queryFn: () => api('/links', z.array(studentLinkSchema)),
     enabled: !!user,
   })
+  // Próximos 30 dias úteis
   const [days] = useState(() =>
-    Array.from({ length: 30 }, (_, index) => {
+    Array.from({ length: 42 }, (_, index) => {
       const date = new Date()
       date.setHours(0, 0, 0, 0)
       date.setDate(date.getDate() + index)
       return date
-    }),
+    })
+      .filter(isWorkday)
+      .slice(0, 30),
   )
-  const agenda = useAgenda(dateKey(new Date()), dateKey(days[days.length - 1] ?? new Date()))
-  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
-  const selectedDay = days.find((day) => dateKey(day) === selectedDate) ?? new Date()
-  const [selectedHour, setSelectedHour] = useState<number | null>(null)
+  const first = days[0] ?? new Date()
+  const agenda = useAgenda(dateKey(first), dateKey(days[days.length - 1] ?? first))
+  const [selectedDate, setSelectedDate] = useState(() => dateKey(first))
+  const selectedDay = days.find((day) => dateKey(day) === selectedDate) ?? first
   const [search, setSearch] = useState('')
+  const [picking, setPicking] = useState(false)
   const [studentId, setStudentId] = useState<string | null>(null)
+  const [slot, setSlot] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const entries = agenda.data || []
+
+  const entries = agenda.data ?? []
   const daily = entries.filter((entry) => entry.date === selectedDate)
-  const availableHours = openingHours(selectedDay)
-  // Preserva a visualização e o cancelamento de agendamentos antigos fora do expediente.
-  const hours = [...new Set([...availableHours, ...daily.map((entry) => entry.hour)])].sort(
-    (a, b) => a - b,
-  )
-  const appointment = daily.find((entry) => entry.hour === selectedHour)
-  const close = () => {
-    if (!saving) {
-      setSelectedHour(null)
-      setSearch('')
-      setStudentId(null)
-      setError('')
-    }
-  }
-  const open = (hour: number) => {
-    setSelectedHour(hour)
-    setStudentId(null)
-    setError('')
-    setSearch('')
-  }
-  const isPast = (hour: number) => {
-    const date = new Date(selectedDay)
-    date.setHours(hour, 0, 0, 0)
-    return date <= new Date()
-  }
-  const persist = async (cancel = false) => {
-    if (saving || selectedHour === null) return
-    const student = students.data?.find((link) => link.student.id === studentId)?.student
-    if (!cancel && (!student || isPast(selectedHour) || !availableHours.includes(selectedHour))) {
-      setError('Selecione um aluno e um horário futuro dentro do expediente.')
-      return
-    }
-    setSaving(true)
-    try {
-      if (cancel && appointment)
-        await api(`/appointments/${encodeURIComponent(appointment.id)}`, z.undefined(), {
-          method: 'DELETE',
-        })
-      else if (student)
-        // Horário já ocupado volta 409 com a mensagem da API
-        await api('/appointments', appointmentSchema, {
-          method: 'POST',
-          body: { studentId: student.id, date: selectedDate, hour: selectedHour },
-        })
-      await cache.invalidateQueries({ queryKey: agendaKey })
-      setSelectedHour(null)
-      setSearch('')
-      setStudentId(null)
-      setError('')
-    } catch (cause) {
-      void cache.invalidateQueries({ queryKey: agendaKey })
-      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar. Tente novamente.')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const taken = new Set(daily.map((entry) => entry.time))
+  const student = students.data?.find((link) => link.student.id === studentId)?.student
   const filteredStudents =
     students.data?.filter((link) =>
       link.student.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')),
-    ) || []
+    ) ?? []
+
+  const isPast = (time: string) => {
+    const [hour = 0, minute = 0] = time.split(':').map(Number)
+    const date = new Date(selectedDay)
+    date.setHours(hour, minute, 0, 0)
+    return date <= new Date()
+  }
+
+  const selectDay = (key: string) => {
+    setSelectedDate(key)
+    setSlot(null)
+    setError('')
+  }
+
+  const selectStudent = (id: string, name: string) => {
+    setStudentId(id)
+    setSearch(name)
+    setPicking(false)
+    setError('')
+  }
+
+  const schedule = async () => {
+    if (saving || !student || !slot) return
+    setSaving(true)
+    try {
+      // Horário já ocupado volta 409 com a mensagem da API
+      await api('/appointments', appointmentSchema, {
+        method: 'POST',
+        body: { studentId: student.id, date: selectedDate, time: slot },
+      })
+      setSlot(null)
+      setStudentId(null)
+      setSearch('')
+      setError('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível agendar. Tente de novo.')
+    } finally {
+      void cache.invalidateQueries({ queryKey: agendaKey })
+      setSaving(false)
+    }
+  }
+
+  const cancel = (id: string, name: string, time: string) =>
+    Alert.alert('Cancelar avaliação?', `${name} às ${time} · ${dayLabel(selectedDay)}`, [
+      { text: 'Voltar', style: 'cancel' },
+      {
+        text: 'Cancelar avaliação',
+        style: 'destructive',
+        onPress: () =>
+          api(`/appointments/${encodeURIComponent(id)}`, z.undefined(), { method: 'DELETE' })
+            .catch((cause: Error) => Alert.alert('Não foi possível cancelar', cause.message))
+            .finally(() => void cache.invalidateQueries({ queryKey: agendaKey })),
+      },
+    ])
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
       <View style={styles.header}>
@@ -126,29 +140,26 @@ export default function AgendaScreen() {
           <Text style={styles.subtitle}>Avaliações Físicas</Text>
         </View>
       </View>
-      <View>
+      <View style={styles.daysBar}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.days}
         >
           {days.map((day) => {
-            const key = dateKey(day),
-              selected = key === selectedDate,
-              count = entries.filter((entry) => entry.date === key).length
+            const key = dateKey(day)
+            const selected = key === selectedDate
+            const count = entries.filter((entry) => entry.date === key).length
             return (
               <TouchableOpacity
                 key={key}
                 accessibilityLabel={dayLabel(day)}
                 accessibilityState={{ selected }}
-                onPress={() => setSelectedDate(key)}
+                onPress={() => selectDay(key)}
                 style={[styles.day, selected && styles.selectedDay]}
               >
                 <Text style={[styles.weekday, selected && styles.white]}>
-                  {day
-                    .toLocaleDateString('pt-BR', { weekday: 'short' })
-                    .replace('.', '')
-                    .toUpperCase()}
+                  {weekday(day).toUpperCase()}
                 </Text>
                 <Text style={styles.dayNumber}>{day.getDate()}</Text>
                 <Text style={[styles.dayCount, selected && styles.white]}>
@@ -159,190 +170,159 @@ export default function AgendaScreen() {
           })}
         </ScrollView>
       </View>
-      <ScrollView contentContainerStyle={styles.timeline} showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Selecionar Aluno</Text>
+          <View style={[styles.search, picking && styles.searchOpen]}>
+            <Ionicons name="search" size={18} color="#888" />
+            <TextInput
+              accessibilityLabel="Buscar aluno"
+              placeholder="Buscar aluno..."
+              placeholderTextColor="#888"
+              style={styles.searchInput}
+              value={search}
+              onFocus={() => setPicking(true)}
+              onChangeText={(text) => {
+                setSearch(text)
+                setStudentId(null)
+                setPicking(true)
+              }}
+            />
+            <TouchableOpacity
+              accessibilityLabel={picking ? 'Fechar lista de alunos' : 'Abrir lista de alunos'}
+              hitSlop={8}
+              onPress={() => setPicking(!picking)}
+            >
+              <Ionicons name={picking ? 'chevron-up' : 'chevron-down'} size={18} color="#888" />
+            </TouchableOpacity>
+          </View>
+          {picking && (
+            <View style={styles.dropdown}>
+              {students.isPending ? (
+                <ActivityIndicator color="#E60012" style={styles.dropdownStatus} />
+              ) : students.isError ? (
+                <TouchableOpacity onPress={() => void students.refetch()}>
+                  <Text style={[styles.error, styles.dropdownStatus]}>
+                    Erro ao carregar alunos. Toque para tentar de novo.
+                  </Text>
+                </TouchableOpacity>
+              ) : filteredStudents.length === 0 ? (
+                <Text style={[styles.subtitle, styles.dropdownStatus]}>
+                  Nenhum aluno encontrado.
+                </Text>
+              ) : (
+                filteredStudents.map(({ student: option }) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: option.id === studentId }}
+                    style={styles.option}
+                    onPress={() => selectStudent(option.id, option.name)}
+                  >
+                    <View style={styles.neutralAvatar}>
+                      <Text style={styles.avatarText}>{initials(option.name)}</Text>
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.studentName}>{option.name}</Text>
+                      <Text style={styles.subtitle}>{option.goal || 'Objetivo não informado'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          <Text style={styles.slotsTitle}>Horários disponíveis</Text>
+          <View style={styles.slots}>
+            {SLOTS.map((time) => {
+              const busy = taken.has(time) || isPast(time)
+              const selected = time === slot
+              return (
+                <TouchableOpacity
+                  key={time}
+                  disabled={busy || agenda.isPending}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${time}, ${busy ? 'indisponível' : 'disponível'}`}
+                  accessibilityState={{ selected, disabled: busy }}
+                  onPress={() => {
+                    setSlot(selected ? null : time)
+                    setError('')
+                  }}
+                  style={[styles.slot, busy ? styles.slotBusy : selected && styles.slotSelected]}
+                >
+                  <Text style={[styles.slotText, busy && styles.slotTextBusy]}>{time}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {!!error && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          )}
+          <TouchableOpacity
+            disabled={saving || !student || !slot}
+            style={[styles.button, (saving || !student || !slot) && styles.disabled]}
+            onPress={() => void schedule()}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Agendar Avaliação</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.summary}>
           <Text style={styles.red}>{dayLabel(selectedDay)}</Text>
           {agenda.isPending
-            ? ' · Carregando…'
+            ? ' - Carregando…'
             : agenda.isError
-              ? ' · Agenda indisponível'
-              : ` · ${daily.length} ${daily.length === 1 ? 'avaliação agendada' : 'avaliações agendadas'}`}
-        </Text>
-        <Text style={styles.subtitle}>
-          {selectedDay.getDay() === 0
-            ? 'Academia fechada aos domingos.'
-            : selectedDay.getDay() === 6
-              ? 'Funcionamento: 14h às 18h.'
-              : 'Funcionamento: 05h às 22h.'}
+              ? ' - Agenda indisponível'
+              : ` - ${daily.length} ${daily.length === 1 ? 'Agendamento' : 'Agendamentos'}`}
         </Text>
         {agenda.isError ? (
           <TouchableOpacity onPress={() => void agenda.refetch()}>
-            <Text style={styles.error}>
-              Não foi possível carregar. Toque para tentar novamente.
-            </Text>
+            <Text style={styles.error}>Não foi possível carregar. Toque para tentar de novo.</Text>
           </TouchableOpacity>
         ) : agenda.isPending ? (
           <ActivityIndicator color="#E60012" />
+        ) : daily.length === 0 ? (
+          <Text style={styles.subtitle}>Nenhuma avaliação agendada neste dia.</Text>
         ) : (
-          hours.map((hour) => {
-            const entry = daily.find((item) => item.hour === hour),
-              past = isPast(hour)
-            return (
-              <View key={hour} style={styles.slot}>
-                <View style={styles.timeColumn}>
-                  <Text style={styles.hour}>{time(hour)}</Text>
-                  <View style={styles.line} />
+          daily.map((entry, index) => (
+            <View key={entry.id} style={styles.entry}>
+              <View style={styles.timeColumn}>
+                <Text style={styles.time}>{entry.time}</Text>
+                {index < daily.length - 1 && <View style={styles.line} />}
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`${entry.time}, ${entry.student.name}, avaliação física. Toque para cancelar`}
+                style={styles.entryCard}
+                onPress={() => cancel(entry.id, entry.student.name, entry.time)}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.red}>{initials(entry.student.name)}</Text>
                 </View>
-                <TouchableOpacity
-                  disabled={!entry && past}
-                  accessibilityLabel={
-                    entry
-                      ? `${time(hour)}, ${entry.student.name}, avaliação física`
-                      : `${time(hour)}, ${past ? 'Horário encerrado' : 'Agendar avaliação'}`
-                  }
-                  style={[
-                    styles.slotCard,
-                    entry && styles.booked,
-                    !entry && past && { opacity: 0.4 },
-                  ]}
-                  onPress={() => open(hour)}
-                >
-                  {entry ? (
-                    <>
-                      <View style={styles.avatar}>
-                        <Text style={styles.red}>{initials(entry.student.name)}</Text>
-                      </View>
-                      <View style={styles.flex}>
-                        <Text style={styles.studentName}>{entry.student.name}</Text>
-                        <Text style={styles.subtitle}>
-                          <Text style={styles.red}>• </Text>Avaliação Física
-                        </Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="add-circle-outline" size={26} color="#555" />
-                      <Text style={styles.available}>
-                        {past ? 'Horário encerrado' : 'Horário disponível — Toque para agendar'}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )
-          })
-        )}
-        <Text style={styles.localNote}>
-          O funcionamento em feriados depende de confirmação da academia.
-        </Text>
-      </ScrollView>
-      <InstructorTabBar />
-      <Modal
-        visible={selectedHour !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={close}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.overlay}
-        >
-          <SafeAreaView edges={['bottom']} style={styles.sheet}>
-            <View style={styles.handle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.badge}>{selectedHour === null ? '' : time(selectedHour)}</Text>
-              <View style={styles.flex}>
-                <Text style={styles.studentName}>{dayLabel(selectedDay)}</Text>
-                <Text style={styles.subtitle}>
-                  {appointment ? 'Avaliação agendada' : 'Qual aluno fará a avaliação?'}
-                </Text>
-              </View>
-              <TouchableOpacity accessibilityLabel="Fechar" disabled={saving} onPress={close}>
-                <Ionicons name="close" size={24} color="#aaa" />
+                <View style={styles.flex}>
+                  <Text style={styles.studentName}>{entry.student.name}</Text>
+                  <Text style={styles.subtitle}>
+                    <Text style={styles.red}>• </Text>Avaliação Física
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
-            {appointment ? (
-              <View style={styles.appointment}>
-                <View style={styles.avatar}>
-                  <Text style={styles.red}>{initials(appointment.student.name)}</Text>
-                </View>
-                <Text style={styles.studentName}>{appointment.student.name}</Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.search}>
-                  <Ionicons name="search" size={18} color="#888" />
-                  <TextInput
-                    accessibilityLabel="Buscar aluno"
-                    placeholder="Buscar aluno..."
-                    placeholderTextColor="#888"
-                    style={styles.searchInput}
-                    value={search}
-                    onChangeText={setSearch}
-                  />
-                </View>
-                <ScrollView style={styles.studentList} keyboardShouldPersistTaps="handled">
-                  {students.isPending ? (
-                    <ActivityIndicator color="#E60012" />
-                  ) : students.isError ? (
-                    <TouchableOpacity onPress={() => void students.refetch()}>
-                      <Text style={styles.error}>
-                        Erro ao carregar alunos. Toque para tentar novamente.
-                      </Text>
-                    </TouchableOpacity>
-                  ) : filteredStudents.length === 0 ? (
-                    <Text style={styles.subtitle}>Nenhum aluno encontrado.</Text>
-                  ) : (
-                    filteredStudents.map(({ student }) => (
-                      <TouchableOpacity
-                        key={student.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: studentId === student.id }}
-                        disabled={saving}
-                        style={[
-                          styles.studentRow,
-                          studentId === student.id && styles.selectedStudent,
-                        ]}
-                        onPress={() => setStudentId(student.id)}
-                      >
-                        <View style={styles.neutralAvatar}>
-                          <Text style={styles.studentName}>{initials(student.name)}</Text>
-                        </View>
-                        <Text style={[styles.studentName, styles.flex]}>{student.name}</Text>
-                        {studentId === student.id && (
-                          <Ionicons name="checkmark-circle" color="#E60012" size={22} />
-                        )}
-                      </TouchableOpacity>
-                    ))
-                  )}
-                </ScrollView>
-              </>
-            )}
-            {!!error && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {error}
-              </Text>
-            )}
-            <TouchableOpacity
-              disabled={saving || (!appointment && !studentId)}
-              style={[styles.button, (saving || (!appointment && !studentId)) && { opacity: 0.4 }]}
-              onPress={() => void persist(!!appointment)}
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {appointment
-                    ? 'Cancelar agendamento'
-                    : studentId
-                      ? 'Agendar avaliação'
-                      : 'Selecione um aluno'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </SafeAreaView>
-        </KeyboardAvoidingView>
-      </Modal>
+          ))
+        )}
+      </ScrollView>
+      <InstructorTabBar />
     </SafeAreaView>
   )
 }
@@ -352,14 +332,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   white: { color: '#fff' },
   red: { color: '#FF3B30', fontFamily: 'SpaceGrotesk_700Bold' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: '#191919',
-  },
+  disabled: { opacity: 0.4 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18 },
   back: {
     width: 36,
     height: 36,
@@ -369,8 +343,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { fontSize: 18, color: '#fff', fontFamily: 'SpaceGrotesk_700Bold' },
-  subtitle: { color: '#888', fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', marginTop: 4 },
-  days: { padding: 12, gap: 8 },
+  subtitle: { color: '#888', fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', marginTop: 2 },
+  daysBar: { borderBottomWidth: 1, borderBottomColor: '#191919' },
+  days: { paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
   day: {
     width: 54,
     minHeight: 72,
@@ -385,7 +360,7 @@ const styles = StyleSheet.create({
   weekday: { color: '#888', fontSize: 9, fontFamily: 'SpaceGrotesk_500Medium' },
   dayNumber: { color: '#fff', fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold' },
   dayCount: { color: '#888', fontSize: 9 },
-  timeline: {
+  content: {
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
@@ -393,107 +368,102 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
-  summary: { color: '#888', fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', marginBottom: 4 },
-  slot: { flexDirection: 'row', gap: 12, minHeight: 60 },
-  timeColumn: { width: 38, alignItems: 'center' },
-  hour: { color: '#888', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12, marginTop: 14 },
-  line: { flex: 1, width: 1, backgroundColor: '#222', marginTop: 6 },
-  slotCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#222',
-    borderStyle: 'dashed',
-    borderRadius: 15,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  booked: { backgroundColor: '#1C1C1E', borderStyle: 'solid' },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#3A2020',
-    borderWidth: 1,
-    borderColor: '#592828',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  studentName: { color: '#fff', fontSize: 13, fontFamily: 'SpaceGrotesk_700Bold' },
-  available: { flex: 1, fontSize: 11, color: '#888', fontFamily: 'SpaceGrotesk_500Medium' },
-  localNote: { color: '#666', fontSize: 11, textAlign: 'center', marginTop: 12 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: '#111',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 18,
-    maxHeight: '85%',
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
-  },
-  handle: {
-    width: 34,
-    height: 3,
-    backgroundColor: '#444',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  badge: {
-    backgroundColor: '#331B19',
-    color: '#FF3B30',
-    padding: 10,
-    borderRadius: 10,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  search: {
+  card: {
     backgroundColor: '#1C1C1E',
-    borderColor: '#303030',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  cardTitle: { color: '#fff', fontSize: 14, fontFamily: 'SpaceGrotesk_600SemiBold' },
+  search: {
+    borderColor: '#3A3A3A',
     borderWidth: 1,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 12,
-    marginBottom: 12,
   },
+  searchOpen: { borderColor: '#FF3B30' },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
     color: '#fff',
     fontFamily: 'SpaceGrotesk_400Regular',
   },
-  studentList: { maxHeight: 260, backgroundColor: '#1C1C1E', borderRadius: 14 },
-  studentRow: {
-    padding: 14,
+  dropdown: { backgroundColor: '#141414', borderRadius: 12, overflow: 'hidden' },
+  dropdownStatus: { padding: 14 },
+  option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#303030',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  selectedStudent: { backgroundColor: '#352020' },
   neutralAvatar: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#303030',
+    backgroundColor: '#2A2A2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  appointment: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 },
+  avatarText: { color: '#fff', fontSize: 11, fontFamily: 'SpaceGrotesk_700Bold' },
+  slotsTitle: { color: '#fff', fontSize: 13, fontFamily: 'SpaceGrotesk_500Medium', marginTop: 4 },
+  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  slot: {
+    width: '23%',
+    flexGrow: 1,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    backgroundColor: '#3A1414',
+    alignItems: 'center',
+  },
+  slotSelected: { backgroundColor: '#FF3B30' },
+  slotBusy: { borderColor: '#3A3A3A', backgroundColor: 'transparent' },
+  slotText: { color: '#fff', fontSize: 13, fontFamily: 'SpaceGrotesk_500Medium' },
+  slotTextBusy: { color: '#666' },
   button: {
-    backgroundColor: '#E60012',
+    backgroundColor: '#FF3B30',
     minHeight: 48,
-    borderRadius: 12,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
   },
   buttonText: { color: '#fff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14 },
-  error: { color: '#FF7777', fontSize: 12, marginTop: 8 },
+  summary: {
+    color: '#aaa',
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_400Regular',
+    marginTop: 8,
+  },
+  entry: { flexDirection: 'row', gap: 12 },
+  timeColumn: { width: 42, alignItems: 'center' },
+  time: { color: '#aaa', fontFamily: 'SpaceGrotesk_500Medium', fontSize: 12, marginTop: 14 },
+  line: { flex: 1, width: 1, backgroundColor: '#333', marginTop: 6, marginBottom: -12 },
+  entryCard: {
+    flex: 1,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    borderRadius: 15,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3A2020',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  studentName: { color: '#fff', fontSize: 13, fontFamily: 'SpaceGrotesk_700Bold' },
+  error: { color: '#FF7777', fontSize: 12 },
 })
