@@ -6,10 +6,12 @@ import { useAuth } from '@/auth'
 
 export const dateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+export const weekday = (date: Date) => WEEKDAYS[date.getDay()] ?? ''
+// "Qui 17 Set" (o Intl do Hermes não garante o formato em pt-BR)
 export const dayLabel = (date: Date) =>
-  date
-    .toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
-    .replace(/\./g, '')
+  `${weekday(date)} ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`
 export const initials = (name: string) =>
   name
     .trim()
@@ -32,11 +34,7 @@ export function useAgenda(from: string, to: string) {
   })
 }
 
-// Cada horário representa uma avaliação de uma hora, terminando até o fechamento.
-export function openingHours(date: Date): number[] {
-  const weekday = date.getDay()
-  if (weekday === 0) return []
-  const start = weekday === 6 ? 14 : 5
-  const closing = weekday === 6 ? 18 : 22
-  return Array.from({ length: closing - start }, (_, index) => start + index)
-}
+// Grade de avaliações do protótipo de 28/10: dias úteis, de 20 em 20 min. A API aceita qualquer
+// "HH:MM", então mudar a grade é só aqui.
+export const SLOTS = ['08:00', '08:20', '12:00', '12:20', '12:40', '19:00', '19:20', '19:40']
+export const isWorkday = (date: Date) => date.getDay() !== 0 && date.getDay() !== 6

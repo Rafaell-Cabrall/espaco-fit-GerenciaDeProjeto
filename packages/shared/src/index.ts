@@ -517,15 +517,16 @@ export function lastMonthBaseline(items: Measurement[]): Measurement | null {
 
 // ---------- agenda de avaliações (instrutor) ----------
 
-// Uma avaliação de uma hora por horário; dia e hora em Brasília. hour 7 = "07:00". A grade de
-// horários de funcionamento é do app; a API só recusa dia passado e horário ocupado (409).
-const hour = z.int().min(5).max(21)
+// Uma avaliação por horário; dia e hora em Brasília. time "08:20" = chip "08:20". A grade de
+// horários (de 20 em 20 min no protótipo) é do app; a API só recusa dia passado e horário
+// ocupado (409).
+const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horário no formato HH:MM')
 
-// POST /appointments — "Confirmar Agendamento às 07:00". Exige vínculo ativo com o aluno.
+// POST /appointments — "Agendar Avaliação". Exige vínculo ativo com o aluno.
 export const createAppointmentSchema = z.object({
   studentId: z.string().min(1),
   date: day,
-  hour,
+  time,
 })
 export type CreateAppointmentInput = z.input<typeof createAppointmentSchema>
 
@@ -537,7 +538,7 @@ export type AppointmentsQuery = z.input<typeof appointmentsQuerySchema>
 export const appointmentSchema = z.object({
   id: z.string(),
   date: day,
-  hour: z.int(),
+  time: z.string(),
   student: userRef,
 })
 export type Appointment = z.infer<typeof appointmentSchema>
