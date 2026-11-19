@@ -157,7 +157,7 @@ Depois, abra um Pull Request no GitHub.
 Universidade Federal do Ceará — UFC
 Campus Quixadá
 
-Disciplina: Gerência de Projeto
+Disciplina: Gerência de Projeto (2026.2 - T01)
 
 ## Créditos
 
