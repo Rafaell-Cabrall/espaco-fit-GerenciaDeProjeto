@@ -2,7 +2,7 @@ import { studentLinkSchema } from '@espacofit/shared'
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
-import { type RelativePathString, useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
   Alert,
@@ -73,44 +73,6 @@ export default function InstructorHomeScreen() {
         ? 'Confira sua programação na agenda.'
         : dailyEvaluations.map((evaluation) => evaluation.student.name).join(' · ')
 
-  const navigateTo = (path: string) => {
-    if (path === '/workouts/new') {
-      router.push({
-        pathname: '/(instrutor)/(tabs)/alunos',
-        params: { action: 'new-plan' },
-      })
-      return
-    }
-    if (path === '/students') {
-      router.push('/(instrutor)/(tabs)/alunos' as RelativePathString)
-      return
-    }
-    if (path === '/schedule') {
-      router.push('/(instrutor)/agenda' as RelativePathString)
-      return
-    }
-    if (path === '/students/new') {
-      router.push('/(instrutor)/students/new' as RelativePathString)
-      return
-    }
-    if (path === '/feedbacks') {
-      router.push('/(instrutor)/feedbacks')
-      return
-    }
-    // As demais telas do instrutor ainda não têm rotas no app.
-    const labels: Record<string, string> = {
-      '/students/new': 'Novo Aluno',
-      '/workouts/new': 'Nova Ficha',
-      '/schedule': 'Agenda',
-      '/payments': 'Pagamento',
-      '/students': 'Alunos',
-      '/feedbacks': 'Feedbacks',
-      '/workouts': 'Biblioteca',
-      '/profile': 'Perfil',
-    }
-    Alert.alert(labels[path] || 'Em breve', 'Esta funcionalidade ainda não está disponível.')
-  }
-
   // Cálculo proporcional para responsividade dinâmica
   const isSmallDevice = width < 375
   const iconBoxSize = isSmallDevice ? 32 : 36
@@ -160,7 +122,7 @@ export default function InstructorHomeScreen() {
         {/* Grade de Atalhos Rápidos Responsiva */}
         <View style={styles.gridContainer}>
           <TouchableOpacity
-            onPress={() => navigateTo('/students/new')}
+            onPress={() => router.push('/(instrutor)/students/new')}
             style={styles.gridItem}
             activeOpacity={0.7}
           >
@@ -173,7 +135,12 @@ export default function InstructorHomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => navigateTo('/workouts/new')}
+            onPress={() =>
+              router.push({
+                pathname: '/(instrutor)/(tabs)/alunos',
+                params: { action: 'new-plan' },
+              })
+            }
             style={styles.gridItem}
             activeOpacity={0.7}
           >
@@ -186,7 +153,7 @@ export default function InstructorHomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => navigateTo('/schedule')}
+            onPress={() => router.push('/(instrutor)/agenda')}
             style={styles.gridItem}
             activeOpacity={0.7}
           >
@@ -199,7 +166,9 @@ export default function InstructorHomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => navigateTo('/payments')}
+            onPress={() =>
+              Alert.alert('Pagamento', 'Esta funcionalidade ainda não está disponível.')
+            }
             style={styles.gridItem}
             activeOpacity={0.7}
           >
@@ -231,7 +200,7 @@ export default function InstructorHomeScreen() {
               </View>
 
               <TouchableOpacity
-                onPress={() => navigateTo('/schedule')}
+                onPress={() => router.push('/(instrutor)/agenda')}
                 style={styles.primaryButton}
                 activeOpacity={0.85}
               >
@@ -286,7 +255,7 @@ export default function InstructorHomeScreen() {
         {/* Métricas do Rodapé Responsivas */}
         <View style={styles.metricsRow}>
           <TouchableOpacity
-            onPress={() => navigateTo('/students')}
+            onPress={() => router.push('/(instrutor)/(tabs)/alunos')}
             style={styles.metricCard}
             activeOpacity={0.7}
           >
@@ -306,7 +275,7 @@ export default function InstructorHomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => navigateTo('/feedbacks')}
+            onPress={() => router.push('/(instrutor)/feedbacks')}
             style={styles.metricCard}
             activeOpacity={0.7}
           >
