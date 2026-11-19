@@ -150,6 +150,8 @@ Depois, abra um Pull Request no GitHub.
 
 - [Decisões técnicas](docs/decisoes.md)
 - [Planejamento das sprints](docs/sprints.md)
+- [API: estrutura, módulos e como rodar](apps/api/README.md)
+- [App mobile: rotas, telas e camada de dados](apps/mobile/README.md)
 - [Padrões de desenvolvimento mobile](apps/mobile/src/README.md)
 
 ## Instituição
